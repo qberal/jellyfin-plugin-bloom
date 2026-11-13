@@ -244,6 +244,8 @@
                     iShare: 'What I share with {0}',
                     theyShare: 'What {0} shares with me',
                     active: 'Active (untick to pause, both ways)',
+                    friendName: 'Name shown here',
+                    friendNameHelp: 'Their server calls itself “{0}”. Leave empty to keep that name. Changing it renames their files on your server, so Jellyfin adds their items again.',
                     syncNow: 'Sync now',
                     removeFriend: 'Remove this friend',
                     savedUpdating: 'Saved. Updating your libraries…',
@@ -332,6 +334,8 @@
                     iShare: 'Ce que je partage avec {0}',
                     theyShare: 'Ce que {0} partage avec moi',
                     active: 'Fédération active (décocher pour mettre en pause dans les deux sens)',
+                    friendName: 'Nom affiché chez vous',
+                    friendNameHelp: 'Son serveur s\'appelle « {0} ». Laissez vide pour garder ce nom. Le changer renomme ses fichiers sur votre serveur : Jellyfin réimporte ses éléments.',
                     syncNow: 'Synchroniser maintenant',
                     removeFriend: 'Retirer cet ami',
                     savedUpdating: 'Enregistré. Mise à jour des bibliothèques en cours…',
@@ -484,7 +488,7 @@
                     var v = 'merge:' + target.Name;
                     return '<option value="' + esc(v) + '"' + (v === current ? ' selected' : '') + '>' + esc(t('addTo', target.Name)) + '</option>';
                 });
-                options.push('<option value="separate"' + (current === 'separate' ? ' selected' : '') + '>' + esc(t('separateLibrary', imp.RemoteLibraryName + ' (' + peer.Name + ')')) + '</option>');
+                options.push('<option value="separate"' + (current === 'separate' ? ' selected' : '') + '>' + esc(t('separateLibrary', imp.RemoteLibraryName + ' (' + peer.ShownName + ')')) + '</option>');
                 options.push('<option value="ignore"' + (current === 'ignore' ? ' selected' : '') + '>' + esc(t('dontImport')) + '</option>');
                 return '<select is="emby-select" class="emby-select-withcolor emby-select" data-import="' + esc(imp.RemoteLibraryId) + '">' + options.join('') + '</select>';
             }
@@ -518,14 +522,18 @@
                     }).join('') || '<span class="bloom-muted">' + esc(t(peer.LastSync ? 'sharesNothing' : 'notSynced')) + '</span>';
 
                     return '<div class="bloom-peer" data-peer="' + esc(peer.Id) + '">' +
-                        '<div class="bloom-row"><h4>' + esc(peer.Name) + '</h4>' + peerStatus(peer) + '</div>' +
+                        '<div class="bloom-row"><h4>' + esc(peer.ShownName) + '</h4>' + peerStatus(peer) + '</div>' +
                         '<div class="bloom-muted">' + esc(peer.Url) + ' · ' + esc(t('fingerprint')) + ' <span class="bloom-fp">' + esc(peer.Fingerprint) + '</span></div>' +
                         '<div class="bloom-muted">' + esc(t('friendsSince', fmtDate(peer.DateAdded), fmtDate(peer.LastSync))) + '</div>' +
                         (peer.Sleeps ? '<div class="bloom-muted">' + esc(t('peerSleeps')) + '</div>' : '') +
                         (peer.LastError ? '<div class="bloom-msg error">' + esc(peer.LastError) + '</div>' : '') +
                         '<div class="bloom-cols">' +
-                            '<div><strong>' + esc(t('iShare', peer.Name)) + '</strong><div class="bloom-libs" data-role="shares">' + shareBoxes + '</div></div>' +
-                            '<div><strong>' + esc(t('theyShare', peer.Name)) + '</strong><div data-role="imports">' + imports + '</div></div>' +
+                            '<div><strong>' + esc(t('iShare', peer.ShownName)) + '</strong><div class="bloom-libs" data-role="shares">' + shareBoxes + '</div></div>' +
+                            '<div><strong>' + esc(t('theyShare', peer.ShownName)) + '</strong><div data-role="imports">' + imports + '</div></div>' +
+                        '</div>' +
+                        '<div class="inputContainer" style="margin:1em 0 .4em">' +
+                            '<input is="emby-input" type="text" data-role="alias" maxlength="40" label="' + esc(t('friendName')) + '" value="' + esc(peer.Alias || '') + '" placeholder="' + esc(peer.Name) + '" />' +
+                            '<div class="fieldDescription">' + esc(t('friendNameHelp', peer.Name)) + '</div>' +
                         '</div>' +
                         '<div class="checkboxContainer" style="margin:.6em 0"><label class="emby-checkbox-label"><input type="checkbox" is="emby-checkbox" data-role="enabled"' + (peer.Enabled ? ' checked' : '') + ' /><span>' + esc(t('active')) + '</span></label></div>' +
                         '<div class="bloom-row">' +
@@ -675,6 +683,7 @@
                         });
                         await call('POST', 'Peers/' + encodeURIComponent(peerId), {
                             Enabled: card.querySelector('[data-role="enabled"]').checked,
+                            Alias: card.querySelector('[data-role="alias"]').value.trim(),
                             SharedLibraryIds: checkedLibs(card.querySelector('[data-role="shares"]')),
                             Imports: imports
                         });
@@ -687,7 +696,7 @@
                         await call('POST', 'Peers/' + encodeURIComponent(peerId) + '/Sync');
                         await load();
                     } else if (action === 'remove') {
-                        if (!window.confirm(t('confirmRemove', peer.Name))) return;
+                        if (!window.confirm(t('confirmRemove', peer.ShownName))) return;
                         await call('DELETE', 'Peers/' + encodeURIComponent(peerId));
                         await load();
                     }

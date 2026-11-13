@@ -111,6 +111,18 @@ public sealed class PeerRecord
     public bool Sleeps { get; set; }
 
     /// <summary>
+    /// Gets or sets the name the admin chose for this friend, shown instead of the one its server announces
+    /// (badge, tag, version picker, settings page).
+    /// </summary>
+    public string? Alias { get; set; }
+
+    /// <summary>
+    /// The friend's name as shown on this server: the admin's choice, or else the one its server announces.
+    /// </summary>
+    /// <returns>The name.</returns>
+    public string ShownName() => string.IsNullOrWhiteSpace(Alias) ? Name : Alias;
+
+    /// <summary>
     /// Whether contacting the friend now would wake its server up: it sleeps when idle and has not been heard from
     /// recently (a server that just talked to us is up).
     /// </summary>

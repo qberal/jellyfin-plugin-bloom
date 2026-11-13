@@ -212,6 +212,7 @@ public sealed class SyncService : IDisposable
                 {
                     MergeImports(p, peer.Imports, _libraries.Exists);
                     p.Sleeps = peer.Sleeps;
+
                     if (!string.IsNullOrWhiteSpace(peer.Name))
                     {
                         p.Name = peer.Name;
@@ -284,6 +285,28 @@ public sealed class SyncService : IDisposable
 
             await RemoveImportedContentAsync(peer).ConfigureAwait(false);
             _store.Update(s => s.Peers.RemoveAll(p => p.Id == peerId));
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    /// <summary>
+    /// Makes the next sync write the friend's files under the name now shown for it: called when the admin picks
+    /// another name. Jellyfin then adds the friend's items again (watch history follows them by provider ids).
+    /// </summary>
+    /// <param name="peerId">Server id.</param>
+    /// <returns>A task.</returns>
+    public async Task RenameFilesAtNextSyncAsync(string peerId)
+    {
+        // Under the gate: a sync running now would save its state over ours.
+        await _gate.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            var state = _store.LoadSyncState(peerId);
+            state.FileLabel = null;
+            _store.SaveSyncState(peerId, state);
         }
         finally
         {
@@ -420,6 +443,10 @@ public sealed class SyncService : IDisposable
             peer.Name = libraries.ServerName.Trim();
         }
 
+        // Badge, tags and library names follow the name shown here. File names keep the one they were first written
+        // with (see MediaWriter), unless the admin picked another name.
+        var shown = peer.ShownName();
+
         // Libraries the friend stopped sharing.
         foreach (var gone in peer.Imports.Where(i => libraries.Libraries.All(l => l.Id != i.RemoteLibraryId)).ToList())
         {
@@ -491,14 +518,14 @@ public sealed class SyncService : IDisposable
                     (file, path, ct) => DownloadAsync(endpoint, file, path, ct),
                     _logger)
                 {
-                    Badge = settings.BadgePosters ? peer.Name : null,
+                    Badge = settings.BadgePosters ? shown : null,
                     OfferVersions = settings.GroupVersions
                 };
                 var result = await writer.WriteAsync(
                     import.CollectionType,
                     items,
                     item => StreamUrl(peer, item),
-                    peer.Name,
+                    shown,
                     owned,
                     cancellationToken).ConfigureAwait(false);
 
@@ -508,7 +535,7 @@ public sealed class SyncService : IDisposable
                 run.Changed |= result.Changed;
                 try
                 {
-                    run.Changed |= await _libraries.EnsureAttachedAsync(import, peer.Name, dir).ConfigureAwait(false);
+                    run.Changed |= await _libraries.EnsureAttachedAsync(import, shown, dir).ConfigureAwait(false);
                 }
                 catch (FederationException ex)
                 {

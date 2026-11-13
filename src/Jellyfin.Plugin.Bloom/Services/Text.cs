@@ -81,6 +81,9 @@ public static class Text
         ["PluginDescription"] = ("Share your libraries with your friends' Jellyfin servers: their movies and shows appear in your libraries and play from their server.", "Fédération entre serveurs Jellyfin amis : partagez vos bibliothèques, les films de vos amis apparaissent chez vous et sont lus depuis leur serveur."),
         ["TaskName"] = ("Sync friends' libraries", "Synchroniser les bibliothèques des amis"),
         ["TaskDescription"] = ("Fetches the catalogs your friends share with you (Bloom) and updates your libraries.", "Récupère les catalogues partagés par vos amis (Bloom) et met à jour vos bibliothèques."),
+        ["IntroName"] = ("{0} intro", "Intro de {0}"),
+        ["IntroTooLarge"] = ("The intro is too large (100 MB at most).", "L'intro est trop lourde (100 Mo au maximum)."),
+        ["IntroNotVideo"] = ("This file is not a video.", "Ce fichier n'est pas une vidéo."),
         ["FriendTag"] = ("Shared by {0}", "Fédération : {0}"),
     };
 

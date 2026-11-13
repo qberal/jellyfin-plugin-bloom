@@ -39,6 +39,7 @@ public class PeerController : ControllerBase
     private readonly CatalogService _catalog;
     private readonly SyncService _sync;
     private readonly PeerClient _client;
+    private readonly FederationPaths _paths;
     private readonly ILibraryManager _libraryManager;
     private readonly ILogger<PeerController> _logger;
 
@@ -52,6 +53,7 @@ public class PeerController : ControllerBase
     /// <param name="catalog">Catalog.</param>
     /// <param name="sync">Sync.</param>
     /// <param name="client">Peer client.</param>
+    /// <param name="paths">Paths.</param>
     /// <param name="libraryManager">Library manager.</param>
     /// <param name="logger">Logger.</param>
     public PeerController(
@@ -62,6 +64,7 @@ public class PeerController : ControllerBase
         CatalogService catalog,
         SyncService sync,
         PeerClient client,
+        FederationPaths paths,
         ILibraryManager libraryManager,
         ILogger<PeerController> logger)
     {
@@ -72,6 +75,7 @@ public class PeerController : ControllerBase
         _catalog = catalog;
         _sync = sync;
         _client = client;
+        _paths = paths;
         _libraryManager = libraryManager;
         _logger = logger;
     }
@@ -188,7 +192,8 @@ public class PeerController : ControllerBase
             {
                 ServerName = _store.GetDisplayName(),
                 Libraries = _catalog.GetSharedLibraries(verified.Peer),
-                Sleeps = _store.Snapshot().Settings.SleepsWhenIdle
+                Sleeps = _store.Snapshot().Settings.SleepsWhenIdle,
+                IntroTag = OwnIntro() is null ? null : _store.Snapshot().Settings.IntroTag
             },
             verified.Nonce!);
     }
@@ -352,6 +357,23 @@ public class PeerController : ControllerBase
     }
 
     /// <summary>
+    /// Our intro, which friends play before our movies.
+    /// </summary>
+    /// <returns>The video.</returns>
+    [HttpGet("Intro")]
+    public async Task<ActionResult> Intro()
+    {
+        var verified = await VerifyFromPeerAsync().ConfigureAwait(false);
+        if (verified.Error is not null)
+        {
+            return verified.Error;
+        }
+
+        var path = OwnIntro();
+        return path is null ? NotFound() : PhysicalFile(path, FriendIntros.MediaType(path));
+    }
+
+    /// <summary>
     /// Does nothing. A friend calls it before playing one of our movies: if this server sleeps when idle, the request
     /// wakes it up (through the proxy that starts it), and the friend waits until it answers.
     /// </summary>
@@ -485,6 +507,13 @@ public class PeerController : ControllerBase
         }
 
         return new Verified(null) { Nonce = nonce, Body = body };
+    }
+
+    private string? OwnIntro()
+    {
+        var file = _store.Snapshot().Settings.IntroFile;
+        var path = file is null ? null : Path.Combine(_paths.IntroDir, file);
+        return path is not null && System.IO.File.Exists(path) ? path : null;
     }
 
     private sealed record Verified(ActionResult? Error)

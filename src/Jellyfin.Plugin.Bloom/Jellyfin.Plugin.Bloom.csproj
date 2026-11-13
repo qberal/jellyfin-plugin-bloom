@@ -26,6 +26,10 @@
   <ItemGroup>
     <None Remove="Configuration\configPage.html" />
     <EmbeddedResource Include="Configuration\configPage.html" />
+    <!-- Badge drawing: Inter (SIL Open Font License, see Resources/Inter-OFL.txt) and Bloom's mark. -->
+    <EmbeddedResource Include="Resources\Inter-SemiBold.ttf" />
+    <EmbeddedResource Include="Resources\Inter-Bold.ttf" />
+    <EmbeddedResource Include="Resources\bloom-mark.png" />
   </ItemGroup>
 
   <ItemGroup>

@@ -134,6 +134,9 @@ public sealed class CatalogLibrariesResponse
 
     /// <summary>Gets or sets a value indicating whether this server sleeps when idle.</summary>
     public bool Sleeps { get; set; }
+
+    /// <summary>Gets or sets the tag of this server's intro (null: none), fetched from <c>/Bloom/Peer/Intro</c>.</summary>
+    public string? IntroTag { get; set; }
 }
 
 /// <summary>A page of catalog items.</summary>

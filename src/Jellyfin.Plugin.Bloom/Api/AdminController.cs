@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bloom.Crypto;
@@ -36,6 +37,7 @@ public class AdminController : ControllerBase
     private readonly SyncService _sync;
     private readonly LibraryIntegration _libraries;
     private readonly PeerClient _client;
+    private readonly FederationPaths _paths;
     private readonly IServerApplicationHost _appHost;
     private readonly ILogger<AdminController> _logger;
 
@@ -49,6 +51,7 @@ public class AdminController : ControllerBase
     /// <param name="sync">Sync.</param>
     /// <param name="libraries">Library integration.</param>
     /// <param name="client">Peer client.</param>
+    /// <param name="paths">Paths.</param>
     /// <param name="versions">Version linker.</param>
     /// <param name="appHost">Application host.</param>
     /// <param name="logger">Logger.</param>
@@ -61,10 +64,12 @@ public class AdminController : ControllerBase
         LibraryIntegration libraries,
         PeerClient client,
         VersionLinker versions,
+        FederationPaths paths,
         IServerApplicationHost appHost,
         ILogger<AdminController> logger)
     {
         _versions = versions;
+        _paths = paths;
         _store = store;
         _identity = identity;
         _pairing = pairing;
@@ -105,6 +110,7 @@ public class AdminController : ControllerBase
                 Version = typeof(Plugin).Assembly.GetName().Version?.ToString()
             },
             state.Settings,
+            Intro = OwnIntro() is { } intro ? new { Size = new FileInfo(intro).Length, state.Settings.IntroTag } : null,
             MediaRoot = _store.GetMediaRoot(),
             ShareableLibraries = _catalog.GetLocalShareableLibraries(),
             MergeTargets = _libraries.ListLibraries()
@@ -126,6 +132,7 @@ public class AdminController : ControllerBase
                 p.Sleeps,
                 p.Alias,
                 ShownName = p.ShownName(),
+                HasIntro = p.IntroFile is not null,
                 Busy = _sync.IsBusy(p.Id),
                 p.SharedLibraryIds,
                 p.Imports
@@ -171,8 +178,10 @@ public class AdminController : ControllerBase
             s.Settings.SkipOwnedItems = request.SkipOwnedItems;
             s.Settings.NotifyPeersOnChange = request.NotifyPeersOnChange;
             s.Settings.BadgePosters = request.BadgePosters;
+            s.Settings.BadgeStyle = PosterBadge.ParseStyle(request.BadgeStyle).ToString();
             s.Settings.GroupVersions = request.GroupVersions;
             s.Settings.SleepsWhenIdle = request.SleepsWhenIdle;
+            s.Settings.PlayFriendIntros = request.PlayFriendIntros;
         });
 
         // These change what friends' libraries look like here: apply them now rather than in 6 hours.
@@ -185,7 +194,8 @@ public class AdminController : ControllerBase
         // Friends that are asleep get the change when they wake up.
         var now = DateTime.UtcNow;
         var awake = _store.Snapshot().Peers.Where(p => p.Enabled && !p.RevokedByPeer && !p.IsAsleep(now)).ToList();
-        if (previous.SkipOwnedItems != request.SkipOwnedItems || previous.BadgePosters != request.BadgePosters || previous.GroupVersions != request.GroupVersions)
+        var styleChanged = !string.Equals(previous.BadgeStyle, PosterBadge.ParseStyle(request.BadgeStyle).ToString(), StringComparison.Ordinal);
+        if (previous.SkipOwnedItems != request.SkipOwnedItems || previous.BadgePosters != request.BadgePosters || previous.GroupVersions != request.GroupVersions || styleChanged)
         {
             foreach (var peer in awake)
             {
@@ -434,6 +444,121 @@ public class AdminController : ControllerBase
 
         await _sync.RemovePeerAsync(peerId).ConfigureAwait(false);
         return NoContent();
+    }
+
+    /// <summary>
+    /// Sets this server's intro: the video friends play before our movies. The body is the video itself.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Its size.</returns>
+    [HttpPost("Intro")]
+    [RequestSizeLimit(FriendIntros.MaxBytes + (1024 * 1024))]
+    public async Task<ActionResult<object>> UploadIntro(CancellationToken cancellationToken)
+    {
+        var extension = FriendIntros.Extension(Request.ContentType?.Split(';')[0].Trim());
+        if (extension is null)
+        {
+            return BadRequest(new { error = Text.Get("IntroNotVideo") });
+        }
+
+        if (Request.ContentLength > FriendIntros.MaxBytes)
+        {
+            return BadRequest(new { error = Text.Get("IntroTooLarge") });
+        }
+
+        Directory.CreateDirectory(_paths.IntroDir);
+        var upload = Path.Combine(_paths.IntroDir, "upload.part");
+        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        long total = 0;
+        var output = System.IO.File.Create(upload);
+        await using (output.ConfigureAwait(false))
+        {
+            var buffer = new byte[81920];
+            int read;
+            while ((read = await Request.Body.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) > 0)
+            {
+                total += read;
+                if (total > FriendIntros.MaxBytes)
+                {
+                    break;
+                }
+
+                hash.AppendData(buffer, 0, read);
+                await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        if (total > FriendIntros.MaxBytes || total == 0)
+        {
+            System.IO.File.Delete(upload);
+            return BadRequest(new { error = Text.Get(total == 0 ? "IntroNotVideo" : "IntroTooLarge") });
+        }
+
+        var tag = Convert.ToHexStringLower(hash.GetHashAndReset())[..16];
+        var name = "intro" + extension;
+        var previous = OwnIntro();
+        System.IO.File.Move(upload, Path.Combine(_paths.IntroDir, name), true);
+        if (previous is not null && !string.Equals(Path.GetFileName(previous), name, StringComparison.Ordinal))
+        {
+            System.IO.File.Delete(previous);
+        }
+
+        _store.Update(s =>
+        {
+            s.Settings.IntroFile = name;
+            s.Settings.IntroTag = tag;
+        });
+        NotifyFriends("intro");
+        return new { Size = total, IntroTag = tag };
+    }
+
+    /// <summary>
+    /// Removes this server's intro.
+    /// </summary>
+    /// <returns>Nothing.</returns>
+    [HttpDelete("Intro")]
+    public ActionResult DeleteIntro()
+    {
+        if (OwnIntro() is { } path)
+        {
+            System.IO.File.Delete(path);
+        }
+
+        _store.Update(s =>
+        {
+            s.Settings.IntroFile = null;
+            s.Settings.IntroTag = null;
+        });
+        NotifyFriends("intro");
+        return NoContent();
+    }
+
+    /// <summary>
+    /// This server's intro, for the preview on the settings page.
+    /// </summary>
+    /// <returns>The video.</returns>
+    [HttpGet("Intro")]
+    public ActionResult GetIntro()
+    {
+        var path = OwnIntro();
+        return path is null ? NotFound() : PhysicalFile(path, FriendIntros.MediaType(path), enableRangeProcessing: true);
+    }
+
+    private string? OwnIntro()
+    {
+        var file = _store.Snapshot().Settings.IntroFile;
+        var path = file is null ? null : Path.Combine(_paths.IntroDir, file);
+        return path is not null && System.IO.File.Exists(path) ? path : null;
+    }
+
+    // Friends that are awake hear about it now; the others when they wake up (they sync with us then).
+    private void NotifyFriends(string reason)
+    {
+        var now = DateTime.UtcNow;
+        foreach (var peer in _store.Snapshot().Peers.Where(p => p.Enabled && !p.RevokedByPeer && !p.IsAsleep(now)))
+        {
+            NotifyInBackground(peer, reason);
+        }
     }
 
     private void NotifyInBackground(PeerRecord peer, string reason)

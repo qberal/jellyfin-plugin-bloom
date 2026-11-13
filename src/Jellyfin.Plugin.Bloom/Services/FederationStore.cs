@@ -43,6 +43,12 @@ public sealed class FederationPaths
     /// <summary>Gets the directory with per-friend sync state.</summary>
     public string SyncStateDir => Path.Combine(DataDir, "sync");
 
+    /// <summary>Gets the folder of this server's intro.</summary>
+    public string IntroDir => Path.Combine(DataDir, "intro");
+
+    /// <summary>Gets the folder of friends' intros (outside the media root: they are not library items).</summary>
+    public string FriendIntroDir => Path.Combine(DataDir, "intros");
+
     /// <summary>Gets the default root of imported media.</summary>
     public string DefaultMediaRoot => Path.Combine(DataDir, "media");
 

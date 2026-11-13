@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.2.3
+
+- Choose how friends' badges look (*Bloom → This server → Badge on friends' posters*): tinted glass in the
+  friend's colour (new default), clear glass, colour label, corner ribbon, Netflix-style bottom tab, the poster's
+  own colour, a blurred Apple TV-style bottom, a discreet Bloom mark, or the classic pill. Each friend keeps the
+  same colour. Badges now use the Inter typeface, shipped with Bloom. Changing the style redraws their posters.
+- Intros: set a short video as your server's intro. Your friends get it at sync, and their Jellyfin plays it
+  before each of your movies (apps with cinema mode, when starting from the beginning). Each server can turn
+  its friends' intros off.
+- Choose the name a friend is shown under on your server (*Name shown here*), for the badge, the tag and the
+  version picker.
+- A friend renaming their server no longer renames every file imported from them (#12).
+- What you own is indexed once per sync run instead of once per friend (#13).
+
 ## 0.2.2
 
 Fixes from a review of the code.

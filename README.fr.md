@@ -39,9 +39,13 @@ choisit ce qu'on partage. Ensuite :
   `.nfo` et des images. Les lecteurs lisent directement chez votre ami, ou via votre serveur quand il faut transcoder.
 - **Ça marche dans toutes les applis Jellyfin** : web, Android TV, iOS, Swiftfin, Findroid, Infuse… Un film d'ami
   est un élément Jellyfin ordinaire. *Télécharger* renvoie aussi la vraie vidéo.
-- **On sait d'où vient quoi.** Un petit badge au nom de votre ami est dessiné sur ses affiches et ses images
-  d'épisodes, donc il se voit dans toutes les applis. Chaque élément porte aussi un tag (`Fédération : Alice`) pour
-  filtrer.
+- **On sait d'où vient quoi.** Un badge au nom de votre ami est dessiné sur ses affiches et ses images d'épisodes,
+  donc il se voit dans toutes les applis. Choisissez son style : verre teinté de la couleur de l'ami, ruban en coin,
+  onglet, couleur de l'affiche, marque discrète… Vous pouvez aussi renommer un ami chez vous. Chaque élément porte
+  aussi un tag (`Fédération : Alice`) pour filtrer.
+- **Intros.** Mettez une courte vidéo comme intro de votre serveur : le Jellyfin de vos amis la passe avant chacun
+  de vos films, comme le logo d'une plateforme, dans les applis qui gèrent le mode cinéma (web, ordinateur,
+  Android). Pas quand on reprend un film en cours.
 - **Pas de doublons.** Si vous avez déjà exactement le même fichier, il n'est pas importé. Si vous avez le film ou
   l'épisode dans une autre qualité, la copie de votre ami devient une **version** dans le sélecteur de version de
   Jellyfin (« Alice 4K »), et la vôtre reste celle lue par défaut. Dans une série, seuls les épisodes qui vous
@@ -171,7 +175,8 @@ c'est **votre** serveur qui transcode.
   traiter comme un nouveau film, et l'historique de ce film est perdu.
 - Si un ami renomme son serveur, le badge et le tag suivent à la synchronisation suivante, mais le sélecteur de
   version garde le nom qu'il avait au premier import de ses éléments : renommer les fichiers ferait voir chaque
-  élément comme nouveau à Jellyfin.
+  élément comme nouveau à Jellyfin. Un nom que vous lui choisissez (*Nom affiché chez vous*) renomme bien ses
+  fichiers, une fois.
 - **Infuse** n'affiche le badge qu'en mode *Direct* : en mode *Bibliothèque*, il utilise ses propres affiches.
 - Bloom écrit les éléments de vos amis dans `<données Jellyfin>/bloom/media` (modifiable). Ne les éditez pas à la main.
   Changer ce dossier retire les éléments de vos amis puis les importe de nouveau dans le nouveau dossier : leur
@@ -230,5 +235,8 @@ du catalogue. Les changements sont listés dans [CHANGELOG.md](CHANGELOG.md).
 
 Les captures utilisent les films libres de la [Blender Foundation](https://studio.blender.org/films/) (CC BY), avec
 les métadonnées et affiches de [TMDB](https://www.themoviedb.org). Bloom n'est pas affilié au projet Jellyfin.
+
+Les badges utilisent la police [Inter](https://rsms.me/inter/) de Rasmus Andersson, sous SIL Open Font License
+(voir `src/Jellyfin.Plugin.Bloom/Resources/Inter-OFL.txt`).
 
 Bloom est un logiciel libre, sous licence [GNU GPL v3](LICENSE).

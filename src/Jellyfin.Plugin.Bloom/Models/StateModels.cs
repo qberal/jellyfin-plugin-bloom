@@ -52,6 +52,18 @@ public sealed class FederationSettings
     /// <summary>Gets or sets a value indicating whether a friend's posters show the friend's name.</summary>
     public bool BadgePosters { get; set; } = true;
 
+    /// <summary>Gets or sets how the friend's name is drawn (a <c>BadgeStyle</c> name).</summary>
+    public string BadgeStyle { get; set; } = "Glass";
+
+    /// <summary>Gets or sets a value indicating whether friends' intros play before their movies here.</summary>
+    public bool PlayFriendIntros { get; set; } = true;
+
+    /// <summary>Gets or sets the file name of this server's intro (in the data folder), if any.</summary>
+    public string? IntroFile { get; set; }
+
+    /// <summary>Gets or sets a short hash of this server's intro: friends download it again when it changes.</summary>
+    public string? IntroTag { get; set; }
+
     /// <summary>
     /// Gets or sets a value indicating whether copies of the same movie (ours in another quality, or several friends')
     /// are grouped as versions of one movie instead of being skipped or listed twice.
@@ -109,6 +121,12 @@ public sealed class PeerRecord
 
     /// <summary>Gets or sets a value indicating whether the friend's server sleeps when idle.</summary>
     public bool Sleeps { get; set; }
+
+    /// <summary>Gets or sets the tag of the friend's intro we have.</summary>
+    public string? IntroTag { get; set; }
+
+    /// <summary>Gets or sets the file name of the friend's intro we have (in the friends' intros folder).</summary>
+    public string? IntroFile { get; set; }
 
     /// <summary>
     /// Gets or sets the name the admin chose for this friend, shown instead of the one its server announces

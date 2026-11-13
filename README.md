@@ -39,8 +39,13 @@ what you share. Then:
   image files. Players stream directly from your friend, or through your server when it has to transcode.
 - **It works in every Jellyfin app**: web, Android TV, iOS, Swiftfin, Findroid, Infuse… A friend's movie is an
   ordinary Jellyfin item. *Download* also returns the actual video.
-- **You can tell what comes from whom.** A small badge with your friend's name is drawn on their posters and
-  episode images, so it shows on every app. Each item is also tagged "Shared by Alice", for filtering.
+- **You can tell what comes from whom.** A badge with your friend's name is drawn on their posters and episode
+  images, so it shows on every app. Pick its style: tinted glass in the friend's colour, a corner ribbon, a tab,
+  the poster's own colour, a discreet mark… You can also rename a friend on your side. Each item is also tagged
+  "Shared by Alice", for filtering.
+- **Intros.** Set a short video as your server's intro: your friends' Jellyfin plays it before each of your
+  movies, like a streaming service's logo, in the apps that support cinema mode (web, desktop, Android). Not when
+  resuming.
 - **No duplicates.** If you already have exactly the same file, it is not imported. If you have the movie or
   episode in another quality, your friend's copy becomes a **version** in Jellyfin's version picker ("Alice
   4K"), and yours stays the default. In a show, only the episodes you're missing are added.
@@ -163,7 +168,7 @@ typical 1080p file, 25–80 Mbit/s for 4K. If your device can't play the format,
   new, and the history of that movie is lost.
 - If a friend renames their server, the badge and the tag follow at the next sync, but the version picker keeps
   the name they had when their items were first imported: renaming the files would make Jellyfin see every item
-  as new.
+  as new. A name you choose for them (*Name shown here*) does rename their files, once.
 - **Infuse** shows the badge in *Direct* mode only: in *Library* mode it uses its own posters.
 - Bloom writes friends' items to `<Jellyfin data>/bloom/media` (configurable). Don't edit them by hand. Changing
   that folder removes friends' items and imports them again in the new one: their watch history starts over.
@@ -257,5 +262,8 @@ The changes are listed in [CHANGELOG.md](CHANGELOG.md).
 
 The screenshots use the open movies of the [Blender Foundation](https://studio.blender.org/films/) (CC BY), with
 metadata and posters from [TMDB](https://www.themoviedb.org). Bloom isn't affiliated with the Jellyfin project.
+
+Badges use the [Inter](https://rsms.me/inter/) typeface by Rasmus Andersson, under the SIL Open Font License
+(see `src/Jellyfin.Plugin.Bloom/Resources/Inter-OFL.txt`).
 
 Bloom is free software, under the [GNU GPL v3](LICENSE).

@@ -533,6 +533,59 @@ def main():
     _, versions = sources("bob", "Deux Versions")
     check(code == 204 and [v["Name"] for v in versions][1:] == ["Alice 720p"], "nom effacé : retour à « Alice 720p »")
 
+    print("== Style du badge")
+    def alice_poster():
+        found = glob.glob("data/bob/config/data/bloom/*/*/*/Le Grand Test (2020)*/poster.jpg")
+        return open(found[0], "rb").read() if len(found) == 1 else b""
+    before = alice_poster()
+    code, _ = api("bob", "POST", "/Bloom/Admin/Settings", {"PublicUrl": SERVERS["bob"]["internal"], "ServerName": "Bob", "SkipOwnedItems": True, "NotifyPeersOnChange": True, "MediaRoot": moved, "BadgeStyle": "Ribbon"})
+    _, st_bob = api("bob", "GET", "/Bloom/Admin/Status")
+    check(code == 204 and st_bob["Settings"]["BadgeStyle"] == "Ribbon", "Bob choisit le ruban comme style de badge")
+    api("bob", "POST", f"/Bloom/Admin/Peers/{alice_id}/Sync")
+    wait_idle("bob")
+    after_style = alice_poster()
+    check(after_style[:2] == b"\xff\xd8" and after_style != before, "les affiches d'Alice sont redessinées avec le nouveau style")
+
+    print("== Intro avant les films d'un ami")
+    clip = open("data/alice/media/movies/Le Grand Test (2020)/Le Grand Test (2020).mkv", "rb").read()
+    alice = SERVERS["alice"]
+    req = urllib.request.Request(alice["host"] + "/Bloom/Admin/Intro", data=clip, method="POST", headers={
+        "Authorization": 'MediaBrowser Client="e2e", Device="e2e", DeviceId="e2e-8101", Version="1.0", Token="%s"' % alice["token"],
+        "Content-Type": "video/x-matroska"})
+    with urllib.request.urlopen(req, timeout=120) as res:
+        uploaded = json.loads(res.read())
+    _, st_alice = api("alice", "GET", "/Bloom/Admin/Status")
+    check(uploaded.get("Size") == len(clip) and st_alice.get("Intro"), "Alice met une intro sur son serveur")
+    code, res = api("alice", "POST", "/Bloom/Admin/Intro", {"not": "a video"})
+    check(code == 400, "un fichier qui n'est pas une vidéo est refusé")
+
+    api("bob", "POST", f"/Bloom/Admin/Peers/{alice_id}/Sync")
+    wait_idle("bob")
+    _, st_bob = api("bob", "GET", "/Bloom/Admin/Status")
+    check(st_bob["Peers"][0].get("HasIntro"), "Bob récupère l'intro d'Alice")
+    def intros(name):
+        item = next(i for i in items("bob", "Movie") if i["Name"] == name)
+        _, res = api("bob", "GET", f"/Items/{item['Id']}/Intros?userId={SERVERS['bob']['user']}")
+        return res.get("Items", []) if isinstance(res, dict) else []
+    grand = intros("Le Grand Test")
+    check(len(grand) == 1, "Jellyfin propose l'intro d'Alice avant un film d'Alice")
+    check(intros("Le Film de Bob") == [], "… mais pas avant un film de Bob")
+    if grand:
+        _, info = api("bob", "POST", f"/Items/{grand[0]['Id']}/PlaybackInfo?userId={SERVERS['bob']['user']}", {})
+        streams = {s["Type"] for s in (info.get("MediaSources") or [{}])[0].get("MediaStreams", [])} if isinstance(info, dict) else set()
+        check("Video" in streams, "… et sait la lire")
+
+    code, _ = api("bob", "POST", "/Bloom/Admin/Settings", {"PublicUrl": SERVERS["bob"]["internal"], "ServerName": "Bob", "SkipOwnedItems": True, "NotifyPeersOnChange": True, "MediaRoot": moved, "BadgeStyle": "Ribbon", "PlayFriendIntros": False})
+    check(code == 204 and intros("Le Grand Test") == [], "Bob peut couper les intros de ses amis")
+    api("bob", "POST", "/Bloom/Admin/Settings", {"PublicUrl": SERVERS["bob"]["internal"], "ServerName": "Bob", "SkipOwnedItems": True, "NotifyPeersOnChange": True, "MediaRoot": moved, "BadgeStyle": "Ribbon"})
+
+    code, _ = api("alice", "DELETE", "/Bloom/Admin/Intro")
+    api("bob", "POST", f"/Bloom/Admin/Peers/{alice_id}/Sync")
+    wait_idle("bob")
+    _, st_bob = api("bob", "GET", "/Bloom/Admin/Status")
+    check(code == 204 and not st_bob["Peers"][0].get("HasIntro") and intros("Le Grand Test") == [], "Alice retire son intro : elle disparaît chez Bob")
+    check(glob.glob("data/bob/config/data/bloom/intros/*") == [], "… et son fichier aussi")
+
     print("== Retrait du partage puis fin de la fédération")
     movies_lib = next(l["Id"] for l in status["alice"]["ShareableLibraries"] if l["CollectionType"] == "movies")
     code, _ = api("alice", "POST", f"/Bloom/Admin/Peers/{bob_id}", {"SharedLibraryIds": [l for l in alice_libs if l != movies_lib]})

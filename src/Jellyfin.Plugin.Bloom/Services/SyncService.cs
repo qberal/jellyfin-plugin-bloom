@@ -32,8 +32,10 @@ public sealed class SyncService : IDisposable
 
     private static readonly TimeSpan SyncDeadline = TimeSpan.FromMinutes(45);
     private static readonly TimeSpan DownloadTimeout = TimeSpan.FromMinutes(2);
+    private static readonly TimeSpan IntroTimeout = TimeSpan.FromMinutes(10);
 
     private readonly FederationStore _store;
+    private readonly FederationPaths _paths;
     private readonly PeerClient _client;
     private readonly LibraryIntegration _libraries;
     private readonly CatalogService _catalog;
@@ -48,6 +50,7 @@ public sealed class SyncService : IDisposable
     /// Initializes a new instance of the <see cref="SyncService"/> class.
     /// </summary>
     /// <param name="store">Store.</param>
+    /// <param name="paths">Paths.</param>
     /// <param name="client">Peer client.</param>
     /// <param name="libraries">Library integration.</param>
     /// <param name="catalog">Catalog service.</param>
@@ -56,6 +59,7 @@ public sealed class SyncService : IDisposable
     /// <param name="logger">Logger.</param>
     public SyncService(
         FederationStore store,
+        FederationPaths paths,
         PeerClient client,
         LibraryIntegration libraries,
         CatalogService catalog,
@@ -64,6 +68,7 @@ public sealed class SyncService : IDisposable
         ILogger<SyncService> logger)
     {
         _store = store;
+        _paths = paths;
         _client = client;
         _libraries = libraries;
         _catalog = catalog;
@@ -212,6 +217,8 @@ public sealed class SyncService : IDisposable
                 {
                     MergeImports(p, peer.Imports, _libraries.Exists);
                     p.Sleeps = peer.Sleeps;
+                    p.IntroTag = peer.IntroTag;
+                    p.IntroFile = peer.IntroFile;
 
                     if (!string.IsNullOrWhiteSpace(peer.Name))
                     {
@@ -405,8 +412,11 @@ public sealed class SyncService : IDisposable
         }
 
         _store.DeleteSyncState(peer.Id);
+        FriendIntros.Forget(_libraryManager, peer.IntroFile is null ? null : Path.Combine(_paths.FriendIntroDir, peer.IntroFile));
         _store.UpdatePeer(peer.Id, p =>
         {
+            p.IntroTag = null;
+            p.IntroFile = null;
             foreach (var import in p.Imports)
             {
                 import.CreatedLibrary = null;
@@ -442,6 +452,8 @@ public sealed class SyncService : IDisposable
         {
             peer.Name = libraries.ServerName.Trim();
         }
+
+        await SyncIntroAsync(peer, endpoint, libraries.IntroTag, cancellationToken).ConfigureAwait(false);
 
         // Badge, tags and library names follow the name shown here. File names keep the one they were first written
         // with (see MediaWriter), unless the admin picked another name.
@@ -518,7 +530,7 @@ public sealed class SyncService : IDisposable
                     (file, path, ct) => DownloadAsync(endpoint, file, path, ct),
                     _logger)
                 {
-                    Badge = settings.BadgePosters ? shown : null,
+                    Badge = settings.BadgePosters ? new BadgeSpec(shown, PosterBadge.ParseStyle(settings.BadgeStyle), PosterBadge.FriendColor(peer.Id)) : null,
                     OfferVersions = settings.GroupVersions
                 };
                 var result = await writer.WriteAsync(
@@ -618,26 +630,35 @@ public sealed class SyncService : IDisposable
             ? $"/Bloom/Peer/Subtitle/{Encode(file.ItemId)}/{Encode(file.Kind[4..])}"
             : $"/Bloom/Peer/Image/{Encode(file.ItemId)}/{Encode(file.Kind)}";
         var maxBytes = file.Kind.StartsWith("sub:", StringComparison.Ordinal) ? MaxSubtitleBytes : MaxImageBytes;
+        return await FetchAsync(endpoint, path, destination, maxBytes, DownloadTimeout, cancellationToken).ConfigureAwait(false) is not null;
+    }
+
+    /// <summary>
+    /// Downloads a file from a friend, refusing anything larger than <paramref name="maxBytes"/>.
+    /// </summary>
+    /// <returns>The media type of what was saved, or null when nothing was.</returns>
+    private async Task<string?> FetchAsync(PeerEndpoint endpoint, string path, string destination, long maxBytes, TimeSpan limit, CancellationToken cancellationToken)
+    {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeout.CancelAfter(DownloadTimeout);
+        timeout.CancelAfter(limit);
         var tmp = destination + ".part";
         try
         {
             using var response = await _client.GetRawAsync(endpoint, path, timeout.Token).ConfigureAwait(false);
             if (response.StatusCode == HttpStatusCode.NotFound)
             {
-                return false;
+                return null;
             }
 
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogDebug("Bloom: {Path} returned {Status}", path, response.StatusCode);
-                return false;
+                return null;
             }
 
             if (response.Content.Headers.ContentLength > maxBytes)
             {
-                return false;
+                return null;
             }
 
             var stream = await response.Content.ReadAsStreamAsync(timeout.Token).ConfigureAwait(false);
@@ -663,31 +684,75 @@ public sealed class SyncService : IDisposable
             }
 
             File.Move(tmp, destination, true);
-            return true;
+            return response.Content.Headers.ContentType?.MediaType ?? "application/octet-stream";
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
             _logger.LogDebug("Bloom: download of {Path} timed out", path);
             TryDelete(tmp);
-            return false;
+            return null;
         }
         catch (PeerRequestException ex)
         {
             _logger.LogDebug(ex, "Bloom: cannot download {Path}", path);
-            return false;
+            return null;
         }
         catch (HttpRequestException ex)
         {
             _logger.LogDebug(ex, "Bloom: cannot download {Path}", path);
             TryDelete(tmp);
-            return false;
+            return null;
         }
         catch (IOException ex)
         {
             _logger.LogDebug(ex, "Bloom: cannot download {Path}", path);
             TryDelete(tmp);
-            return false;
+            return null;
         }
+    }
+
+    /// <summary>
+    /// Keeps our copy of the friend's intro in line with theirs: downloaded when it changed, removed when they have
+    /// none. A failed download keeps the previous intro.
+    /// </summary>
+    private async Task SyncIntroAsync(PeerRecord peer, PeerEndpoint endpoint, string? tag, CancellationToken cancellationToken)
+    {
+        var dir = _paths.FriendIntroDir;
+        var current = peer.IntroFile is null ? null : Path.Combine(dir, peer.IntroFile);
+        if (tag is null || tag.Length is 0 or > 64 || !tag.All(char.IsAsciiHexDigit))
+        {
+            FriendIntros.Forget(_libraryManager, current);
+            peer.IntroTag = null;
+            peer.IntroFile = null;
+            return;
+        }
+
+        if (tag == peer.IntroTag && current is not null && File.Exists(current))
+        {
+            return;
+        }
+
+        Directory.CreateDirectory(dir);
+        var download = Path.Combine(dir, peer.Id + ".download");
+        var type = await FetchAsync(endpoint, "/Bloom/Peer/Intro", download, FriendIntros.MaxBytes, IntroTimeout, cancellationToken).ConfigureAwait(false);
+        var extension = FriendIntros.Extension(type);
+        if (extension is null)
+        {
+            TryDelete(download);
+            return;
+        }
+
+        // A new name for each version: Jellyfin keeps what it learnt about a file (length...) under its path.
+        var name = $"{peer.Id}-{tag.ToLowerInvariant()}{extension}";
+        File.Move(download, Path.Combine(dir, name), true);
+        if (current is not null && !string.Equals(Path.GetFileName(current), name, StringComparison.Ordinal))
+        {
+            FriendIntros.Forget(_libraryManager, current);
+        }
+
+        peer.IntroTag = tag;
+        peer.IntroFile = name;
+        _logger.LogInformation("Bloom: got the intro of {Peer}", peer.ShownName());
     }
 
     private static void TryDelete(string path)

@@ -87,12 +87,17 @@
                         </label>
                         <div class="fieldDescription checkboxFieldDescription" data-i18n="notifyHelp"></div>
                     </div>
+                    <div class="selectContainer">
+                        <label class="selectLabel" for="bloomBadgeStyle" data-i18n="badge"></label>
+                        <select is="emby-select" id="bloomBadgeStyle" class="emby-select-withcolor emby-select"></select>
+                        <div class="fieldDescription" data-i18n="badgeHelp"></div>
+                    </div>
                     <div class="checkboxContainer checkboxContainer-withDescription">
                         <label class="emby-checkbox-label">
-                            <input id="bloomBadge" type="checkbox" is="emby-checkbox" />
-                            <span data-i18n="badge"></span>
+                            <input id="bloomFriendIntros" type="checkbox" is="emby-checkbox" />
+                            <span data-i18n="friendIntros"></span>
                         </label>
-                        <div class="fieldDescription checkboxFieldDescription" data-i18n="badgeHelp"></div>
+                        <div class="fieldDescription checkboxFieldDescription" data-i18n="friendIntrosHelp"></div>
                     </div>
                     <div class="checkboxContainer checkboxContainer-withDescription">
                         <label class="emby-checkbox-label">
@@ -104,6 +109,18 @@
                     <button is="emby-button" type="submit" class="raised button-submit emby-button"><span data-i18n="save"></span></button>
                     <div class="bloom-msg" id="bloomSettingsMsg"></div>
                 </form>
+                <div style="margin-top:1.6em">
+                    <h3 data-i18n="introVideoTitle"></h3>
+                    <p class="fieldDescription" data-i18n="introVideoHelp"></p>
+                    <p class="bloom-muted" id="bloomIntroState"></p>
+                    <video id="bloomIntroPreview" class="bloom-hidden" controls playsinline preload="metadata" style="display:block;max-width:min(100%,560px);border-radius:8px;margin:.4em 0 .8em"></video>
+                    <input type="file" id="bloomIntroFile" class="bloom-hidden" accept="video/mp4,video/quicktime,video/webm,video/x-matroska,.mp4,.m4v,.mov,.webm,.mkv" />
+                    <div class="bloom-row">
+                        <button is="emby-button" type="button" class="raised emby-button bloom-small" id="bloomIntroPick"><span id="bloomIntroPickLabel"></span></button>
+                        <button is="emby-button" type="button" class="raised emby-button bloom-small bloom-hidden" id="bloomIntroRemove"><span data-i18n="introVideoRemove"></span></button>
+                    </div>
+                    <div class="bloom-msg" id="bloomIntroMsg"></div>
+                </div>
             </div>
 
             <!-- Invite -->
@@ -189,8 +206,41 @@
                     sleeps: 'My server sleeps when nobody uses it',
                     sleepsHelp: 'For a server that a proxy stops when idle and starts again on the next visit. Friends then only wake it to play one of your movies, and sync with it whenever it wakes up.',
                     peerSleeps: 'Sleeps when idle: Bloom only wakes it to play a movie, and syncs whenever it wakes up.',
-                    badge: 'Show the friend\'s name on posters',
-                    badgeHelp: 'A small "Alice" badge at the bottom of their movie posters and episode images, visible in every list and in every app (TV, mobile). Their items are also tagged, for filtering.',
+                    badge: 'Badge on friends\' posters',
+                    badgeHelp: 'Drawn on their posters and episode images, so you see whose movie it is in every list and every app. Friend\'s colour: each friend keeps the same one. Film\'s colour: taken from the poster. Changing the style redraws their posters at the next sync.',
+                    styleNone: 'No badge',
+                    styleGroupFriend: 'Friend\'s colour',
+                    styleGroupFilm: 'Film\'s colour',
+                    styleGroupPlain: 'Neutral',
+                    style_Glass: 'Tinted glass',
+                    style_Frosted: 'Clear glass, coloured text',
+                    style_Pill: 'Colour label',
+                    style_ColorTab: 'Colour tab with a line',
+                    style_Tab: 'Bottom tab (Netflix style)',
+                    style_Ribbon: 'Corner ribbon',
+                    style_RibbonGlass: 'Glass corner ribbon',
+                    style_PosterGlass: 'Tinted glass',
+                    style_PosterLabel: 'Label',
+                    style_PosterScrim: 'Bottom gradient',
+                    style_Cinema: 'Blurred bottom (Apple TV style)',
+                    style_NeutralGlass: 'Frosted glass',
+                    style_Label: 'White label',
+                    style_Corner: 'Dark corner tab',
+                    style_Scrim: 'Dark bottom gradient',
+                    style_Mark: 'Bloom mark, top left (Apple TV style)',
+                    style_Classic: 'Classic pill (before 0.2.3)',
+                    friendIntros: 'Play my friends\' intros before their movies',
+                    friendIntrosHelp: 'In Jellyfin apps with cinema mode (web, desktop, Android), when a movie starts from the beginning.',
+                    introVideoTitle: 'My server\'s intro',
+                    introVideoHelp: 'A short video your friends\' Jellyfin plays before each of your movies, when they start one from the beginning. MP4, MOV, WebM or MKV, 100 MB at most.',
+                    introVideoNone: 'No intro.',
+                    introVideoSet: 'Intro set ({0} MB). Your friends get it at their next sync.',
+                    introVideoPick: 'Choose a video…',
+                    introVideoReplace: 'Replace…',
+                    introVideoRemove: 'Remove',
+                    introVideoSending: 'Sending…',
+                    introVideoSaved: 'Intro saved.',
+                    peerHasIntro: 'Has an intro, played before their movies.',
                     save: 'Save',
                     saved: 'Saved.',
                     inviteTitle: 'Invite a friend',
@@ -279,8 +329,41 @@
                     sleeps: 'Mon serveur se met en veille quand personne ne l\'utilise',
                     sleepsHelp: 'Pour un serveur qu\'un proxy arrête quand il ne sert pas et relance à la visite suivante. Vos amis ne le réveilleront que pour regarder un de vos films, et se synchroniseront avec lui à chacun de ses réveils.',
                     peerSleeps: 'Se met en veille : Bloom ne le réveille que pour regarder un film, et se synchronise à chacun de ses réveils.',
-                    badge: 'Afficher le nom de l\'ami sur les affiches',
-                    badgeHelp: 'Un petit badge « Alice » en bas des affiches de ses films et des images de ses épisodes, visible dans toutes les listes et sur toutes les applis (TV, mobile). Ses éléments portent aussi un tag, pratique pour filtrer.',
+                    badge: 'Badge sur les affiches des amis',
+                    badgeHelp: 'Dessiné sur leurs affiches et les images de leurs épisodes : on voit à qui est le film dans toutes les listes et sur toutes les applis. Couleur de l\'ami : chaque ami garde la sienne. Couleur du film : tirée de l\'affiche. Changer de style redessine leurs affiches à la synchronisation suivante.',
+                    styleNone: 'Pas de badge',
+                    styleGroupFriend: 'Couleur de l\'ami',
+                    styleGroupFilm: 'Couleur du film',
+                    styleGroupPlain: 'Sobre',
+                    style_Glass: 'Verre teinté',
+                    style_Frosted: 'Verre clair, texte en couleur',
+                    style_Pill: 'Pastille couleur',
+                    style_ColorTab: 'Onglet couleur avec liseré',
+                    style_Tab: 'Onglet en bas (façon Netflix)',
+                    style_Ribbon: 'Ruban en coin',
+                    style_RibbonGlass: 'Ruban en verre',
+                    style_PosterGlass: 'Verre teinté',
+                    style_PosterLabel: 'Étiquette',
+                    style_PosterScrim: 'Bandeau dégradé',
+                    style_Cinema: 'Bas flouté (façon Apple TV)',
+                    style_NeutralGlass: 'Verre dépoli',
+                    style_Label: 'Étiquette blanche',
+                    style_Corner: 'Onglet sombre en coin',
+                    style_Scrim: 'Bandeau sombre en bas',
+                    style_Mark: 'Marque Bloom en haut (façon Apple TV)',
+                    style_Classic: 'Pilule classique (avant 0.2.3)',
+                    friendIntros: 'Passer l\'intro de mes amis avant leurs films',
+                    friendIntrosHelp: 'Dans les applis Jellyfin qui ont le mode cinéma (web, ordinateur, Android), quand un film démarre depuis le début.',
+                    introVideoTitle: 'Intro de mon serveur',
+                    introVideoHelp: 'Une courte vidéo que le Jellyfin de vos amis passe avant chacun de vos films, quand ils le démarrent depuis le début. MP4, MOV, WebM ou MKV, 100 Mo au maximum.',
+                    introVideoNone: 'Pas d\'intro.',
+                    introVideoSet: 'Intro en place ({0} Mo). Vos amis la récupèrent à leur prochaine synchronisation.',
+                    introVideoPick: 'Choisir une vidéo…',
+                    introVideoReplace: 'Remplacer…',
+                    introVideoRemove: 'Retirer',
+                    introVideoSending: 'Envoi…',
+                    introVideoSaved: 'Intro enregistrée.',
+                    peerHasIntro: 'A une intro, passée avant ses films.',
                     save: 'Enregistrer',
                     saved: 'Enregistré.',
                     inviteTitle: 'Inviter un ami',
@@ -438,6 +521,60 @@
 
             function normId(id) { return String(id || '').replace(/-/g, '').toLowerCase(); }
 
+            var BADGE_STYLES = [
+                ['styleGroupFriend', ['Glass', 'Frosted', 'Pill', 'ColorTab', 'Tab', 'Ribbon', 'RibbonGlass']],
+                ['styleGroupFilm', ['PosterGlass', 'PosterLabel', 'PosterScrim', 'Cinema']],
+                ['styleGroupPlain', ['NeutralGlass', 'Label', 'Corner', 'Scrim', 'Mark', 'Classic']]
+            ];
+
+            function renderBadgeStyles(current) {
+                var html = BADGE_STYLES.map(function (group) {
+                    return '<optgroup label="' + esc(t(group[0])) + '">' + group[1].map(function (style) {
+                        return '<option value="' + style + '">' + esc(t('style_' + style)) + '</option>';
+                    }).join('') + '</optgroup>';
+                }).join('') + '<option value="none">' + esc(t('styleNone')) + '</option>';
+                var select = $('#bloomBadgeStyle');
+                select.innerHTML = html;
+                select.value = current;
+                if (!select.value) select.value = 'Glass';
+            }
+
+            var introPreviewTag = null;
+
+            async function renderIntro(intro) {
+                var preview = $('#bloomIntroPreview');
+                $('#bloomIntroState').textContent = intro
+                    ? t('introVideoSet', (intro.Size / 1048576).toLocaleString(lang, { maximumFractionDigits: 1 }))
+                    : t('introVideoNone');
+                $('#bloomIntroPickLabel').textContent = t(intro ? 'introVideoReplace' : 'introVideoPick');
+                $('#bloomIntroRemove').classList.toggle('bloom-hidden', !intro);
+                if (!intro) {
+                    preview.classList.add('bloom-hidden');
+                    preview.removeAttribute('src');
+                    introPreviewTag = null;
+                    return;
+                }
+
+                if (introPreviewTag === intro.IntroTag) return;
+                introPreviewTag = intro.IntroTag;
+                try {
+                    // The video element cannot send the auth header: fetch it, then play it from memory.
+                    var res = await fetch(ApiClient.getUrl('Bloom/Admin/Intro'), { headers: { 'Authorization': 'MediaBrowser Token="' + ApiClient.accessToken() + '"' } });
+                    if (!res.ok) return;
+                    if (preview.src) URL.revokeObjectURL(preview.src);
+                    preview.src = URL.createObjectURL(await res.blob());
+                    preview.classList.remove('bloom-hidden');
+                } catch (e) {
+                    preview.classList.add('bloom-hidden');
+                }
+            }
+
+            function videoType(file) {
+                if (file.type) return file.type;
+                var ext = (file.name.split('.').pop() || '').toLowerCase();
+                return { mp4: 'video/mp4', m4v: 'video/x-m4v', mov: 'video/quicktime', webm: 'video/webm', mkv: 'video/x-matroska' }[ext] || '';
+            }
+
             function renderStatus() {
                 var s = state;
                 $('#bloomFingerprint').textContent = s.Identity.Fingerprint;
@@ -449,7 +586,9 @@
                 $('#bloomDefaultRoot').textContent = s.MediaRoot;
                 $('#bloomSkipOwned').checked = !!s.Settings.SkipOwnedItems;
                 $('#bloomNotify').checked = !!s.Settings.NotifyPeersOnChange;
-                $('#bloomBadge').checked = !!s.Settings.BadgePosters;
+                renderBadgeStyles(s.Settings.BadgePosters ? (s.Settings.BadgeStyle || 'Glass') : 'none');
+                $('#bloomFriendIntros').checked = s.Settings.PlayFriendIntros !== false;
+                renderIntro(s.Intro);
                 $('#bloomVersions').checked = !!s.Settings.GroupVersions;
                 $('#bloomSleeps').checked = !!s.Settings.SleepsWhenIdle;
                 if (s.Identity.SuggestedUrl && !s.Settings.PublicUrl) {
@@ -526,6 +665,7 @@
                         '<div class="bloom-muted">' + esc(peer.Url) + ' · ' + esc(t('fingerprint')) + ' <span class="bloom-fp">' + esc(peer.Fingerprint) + '</span></div>' +
                         '<div class="bloom-muted">' + esc(t('friendsSince', fmtDate(peer.DateAdded), fmtDate(peer.LastSync))) + '</div>' +
                         (peer.Sleeps ? '<div class="bloom-muted">' + esc(t('peerSleeps')) + '</div>' : '') +
+                        (peer.HasIntro ? '<div class="bloom-muted">' + esc(t('peerHasIntro')) + '</div>' : '') +
                         (peer.LastError ? '<div class="bloom-msg error">' + esc(peer.LastError) + '</div>' : '') +
                         '<div class="bloom-cols">' +
                             '<div><strong>' + esc(t('iShare', peer.ShownName)) + '</strong><div class="bloom-libs" data-role="shares">' + shareBoxes + '</div></div>' +
@@ -572,6 +712,47 @@
                 }
             }
 
+            $('#bloomIntroPick').addEventListener('click', function () {
+                $('#bloomIntroFile').value = '';
+                $('#bloomIntroFile').click();
+            });
+
+            $('#bloomIntroFile').addEventListener('change', async function () {
+                var file = this.files && this.files[0];
+                var msg = $('#bloomIntroMsg');
+                if (!file) return;
+                message(msg, t('introVideoSending'));
+                try {
+                    var res = await fetch(ApiClient.getUrl('Bloom/Admin/Intro'), {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': 'MediaBrowser Token="' + ApiClient.accessToken() + '"',
+                            'Content-Type': videoType(file) || 'application/octet-stream',
+                            'X-Bloom-Language': lang
+                        },
+                        body: file
+                    });
+                    var data = null;
+                    try { data = await res.json(); } catch (e) { data = null; }
+                    if (!res.ok) throw new Error((data && (data.error || data.title)) || t('httpError', res.status));
+                    message(msg, t('introVideoSaved'), 'success');
+                    await load();
+                } catch (err) {
+                    message(msg, err.message, 'error');
+                }
+            });
+
+            $('#bloomIntroRemove').addEventListener('click', async function () {
+                var msg = $('#bloomIntroMsg');
+                try {
+                    await call('DELETE', 'Intro');
+                    message(msg, '');
+                    await load();
+                } catch (err) {
+                    message(msg, err.message, 'error');
+                }
+            });
+
             $('#bloomUseSuggested').addEventListener('click', function (e) {
                 e.preventDefault();
                 $('#bloomPublicUrl').value = $('#bloomSuggested').textContent;
@@ -587,7 +768,9 @@
                         MediaRoot: $('#bloomMediaRoot').value.trim() || null,
                         SkipOwnedItems: $('#bloomSkipOwned').checked,
                         NotifyPeersOnChange: $('#bloomNotify').checked,
-                        BadgePosters: $('#bloomBadge').checked,
+                        BadgePosters: $('#bloomBadgeStyle').value !== 'none',
+                        BadgeStyle: $('#bloomBadgeStyle').value === 'none' ? (state.Settings.BadgeStyle || 'Glass') : $('#bloomBadgeStyle').value,
+                        PlayFriendIntros: $('#bloomFriendIntros').checked,
                         GroupVersions: $('#bloomVersions').checked,
                         SleepsWhenIdle: $('#bloomSleeps').checked
                     });

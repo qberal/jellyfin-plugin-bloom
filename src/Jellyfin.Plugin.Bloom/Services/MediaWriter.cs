@@ -233,11 +233,11 @@ public sealed class OwnedIndex
 /// <param name="ItemId">Remote item id.</param>
 /// <param name="Kind">Image type ("Primary"...) or "sub:{index}".</param>
 /// <param name="Tag">Version tag.</param>
-/// <param name="Badge">Friend name to draw on the image, if any.</param>
-public sealed record RemoteFile(string ItemId, string Kind, string Tag, string? Badge = null)
+/// <param name="Badge">Badge to draw on the image, if any.</param>
+public sealed record RemoteFile(string ItemId, string Kind, string Tag, BadgeSpec? Badge = null)
 {
     /// <summary>Gets what identifies this exact file in the sync state (changes when it must be fetched again).</summary>
-    public string StateTag => Badge is null ? $"{Kind}:{Tag}" : $"{Kind}:{Tag}#badge:{Badge}";
+    public string StateTag => Badge is null ? $"{Kind}:{Tag}" : $"{Kind}:{Tag}#badge:{Badge.Tag}";
 }
 
 /// <summary>Outcome of writing one library.</summary>
@@ -302,9 +302,9 @@ public sealed partial class MediaWriter
     }
 
     /// <summary>
-    /// Gets the friend name drawn on posters and episode thumbnails (null: posters are left as is).
+    /// Gets the badge drawn on posters and episode thumbnails (null: posters are left as is).
     /// </summary>
-    public string? Badge { get; init; }
+    public BadgeSpec? Badge { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether a movie or episode we own in another version is imported (and later grouped with ours).
@@ -550,7 +550,7 @@ public sealed partial class MediaWriter
     private static string BaseName(CatalogItem item)
         => item.Year is int year ? $"{SafeName(item.Name)} ({year.ToString(CultureInfo.InvariantCulture)})" : SafeName(item.Name);
 
-    private static void AddImages(Dictionary<string, object> desired, CatalogItem item, string dir, Dictionary<string, string> names, string? badge)
+    private static void AddImages(Dictionary<string, object> desired, CatalogItem item, string dir, Dictionary<string, string> names, BadgeSpec? badge)
     {
         foreach (var image in item.Images)
         {

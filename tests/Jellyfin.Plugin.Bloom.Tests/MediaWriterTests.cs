@@ -235,7 +235,7 @@ public sealed class MediaWriterTests : IDisposable
         }
 
         var downloads = new List<RemoteFile>();
-        MediaWriter NewWriter(PeerSyncState state, string? badge) => new(
+        MediaWriter NewWriter(PeerSyncState state, string? name) => new(
             LibDir,
             "lib/",
             state,
@@ -258,7 +258,7 @@ public sealed class MediaWriterTests : IDisposable
                 return Task.FromResult(true);
             },
             NullLogger.Instance)
-        { Badge = badge };
+        { Badge = name is null ? null : new BadgeSpec(name, BadgeStyle.Classic, 0x007AFF) };
 
         var state = new PeerSyncState();
         var movie = Movie("aaaaaaaaaaaa", "Le Grand Test", 2020, "900001");
@@ -283,6 +283,53 @@ public sealed class MediaWriterTests : IDisposable
         await NewWriter(state, null).WriteAsync("movies", [movie], Url, "Alice", null, CancellationToken.None);
         Assert.Equal(["Primary"], downloads.Select(d => d.Kind));
         Assert.True(Darkest("poster.jpg", 552) > 185, "original poster expected");
+    }
+
+    [Theory]
+    [MemberData(nameof(AllStyles))]
+    public void EveryBadgeStyleDrawsOnPostersAndEpisodeImages(BadgeStyle style)
+    {
+        foreach (var (width, height) in new[] { (400, 600), (640, 360) })
+        {
+            using var bitmap = new SkiaSharp.SKBitmap(new SkiaSharp.SKImageInfo(width, height, SkiaSharp.SKColorType.Rgba8888, SkiaSharp.SKAlphaType.Premul));
+            using (var canvas = new SkiaSharp.SKCanvas(bitmap))
+            using (var shader = SkiaSharp.SKShader.CreateLinearGradient(new SkiaSharp.SKPoint(0, 0), new SkiaSharp.SKPoint(width, height), [new SkiaSharp.SKColor(200, 60, 40), new SkiaSharp.SKColor(30, 80, 200)], SkiaSharp.SKShaderTileMode.Clamp))
+            using (var paint = new SkiaSharp.SKPaint { Shader = shader })
+            {
+                canvas.DrawRect(0, 0, width, height, paint);
+            }
+
+            var before = bitmap.Bytes;
+            PosterBadge.Draw(bitmap, new BadgeSpec("Médiathèque", style, PosterBadge.FriendColor("dcf93515c784a43228f3f0945d2dd505")));
+            var after = bitmap.Bytes;
+            var changed = before.Zip(after).Count(p => p.First != p.Second);
+            Assert.True(changed > before.Length / 400, $"{style} {width}x{height}: badge expected ({changed} bytes changed)");
+        }
+    }
+
+    public static TheoryData<BadgeStyle> AllStyles()
+    {
+        var data = new TheoryData<BadgeStyle>();
+        foreach (var style in Enum.GetValues<BadgeStyle>())
+        {
+            data.Add(style);
+        }
+
+        return data;
+    }
+
+    [Fact]
+    public void BadgeStylesAndColoursAreStable()
+    {
+        Assert.Equal(BadgeStyle.Glass, PosterBadge.ParseStyle(null));
+        Assert.Equal(BadgeStyle.Glass, PosterBadge.ParseStyle("nonsense"));
+        Assert.Equal(BadgeStyle.Ribbon, PosterBadge.ParseStyle("ribbon"));
+        Assert.Equal(PosterBadge.FriendColor("abc"), PosterBadge.FriendColor("abc"));
+
+        // Changing the style or the name means drawing the posters again.
+        var glass = new RemoteFile("1", "Primary", "t", new BadgeSpec("Alice", BadgeStyle.Glass, 0x007AFF)).StateTag;
+        Assert.NotEqual(glass, new RemoteFile("1", "Primary", "t", new BadgeSpec("Alice", BadgeStyle.Ribbon, 0x007AFF)).StateTag);
+        Assert.NotEqual(glass, new RemoteFile("1", "Primary", "t", new BadgeSpec("Alicia", BadgeStyle.Glass, 0x007AFF)).StateTag);
     }
 
     [Fact]

@@ -134,6 +134,24 @@ public sealed class MediaWriterTests : IDisposable
     }
 
     [Fact]
+    public async Task ANameChosenByTheAdminRenamesTheFilesOnce()
+    {
+        Text.UseRequestLanguage("en");
+        var state = new PeerSyncState();
+        var movie = Movie("aaaaaaaaaaaa", "A", 2001, "1");
+        var folder = Path.Combine(LibDir, "A (2001) [tmdbid-1]");
+        await Writer(state).WriteAsync("movies", [movie], Url, "Médiathèque", null, CancellationToken.None);
+
+        // What SyncService.RenameFilesAtNextSyncAsync does when the admin names the friend "Max".
+        state.FileLabel = null;
+        await Writer(state).WriteAsync("movies", [movie], Url, "Max", null, CancellationToken.None);
+
+        Assert.True(File.Exists(Path.Combine(folder, "A (2001) - Max.strm")));
+        Assert.Empty(Directory.GetFiles(folder, "*Médiathèque*"));
+        Assert.Equal("Max", state.FileLabel);
+    }
+
+    [Fact]
     public async Task OwnedMoviesAreSkipped()
     {
         var owned = new OwnedIndex();

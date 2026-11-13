@@ -26,6 +26,8 @@ namespace Jellyfin.Plugin.Bloom.Api;
 [UsePageLanguage]
 public class AdminController : ControllerBase
 {
+    private const int MaxAliasLength = 40;
+
     private readonly FederationStore _store;
     private readonly ServerIdentity _identity;
     private readonly PairingService _pairing;
@@ -109,7 +111,7 @@ public class AdminController : ControllerBase
                 .Where(l => l.Locations.Length == 0 || l.Locations.Any(x => !_catalog.IsFederatedPath(x)))
                 .Select(l => new { l.Name, l.CollectionType }),
             Invites = state.Invites.Where(i => i.ExpiresUtc > DateTime.UtcNow).Select(i => new { i.Label, i.ExpiresUtc, i.SharedLibraryIds }),
-            Peers = state.Peers.OrderBy(p => p.Name, StringComparer.CurrentCultureIgnoreCase).Select(p => new
+            Peers = state.Peers.OrderBy(p => p.ShownName(), StringComparer.CurrentCultureIgnoreCase).Select(p => new
             {
                 p.Id,
                 p.Name,
@@ -122,6 +124,8 @@ public class AdminController : ControllerBase
                 p.LastSync,
                 p.LastError,
                 p.Sleeps,
+                p.Alias,
+                ShownName = p.ShownName(),
                 Busy = _sync.IsBusy(p.Id),
                 p.SharedLibraryIds,
                 p.Imports
@@ -301,16 +305,28 @@ public class AdminController : ControllerBase
     /// <param name="request">Changes.</param>
     /// <returns>Nothing.</returns>
     [HttpPost("Peers/{peerId}")]
-    public ActionResult UpdatePeer([FromRoute] string peerId, [FromBody] PeerUpdateRequest request)
+    public async Task<ActionResult> UpdatePeer([FromRoute] string peerId, [FromBody] PeerUpdateRequest request)
     {
         var mergeTargets = _libraries.ListLibraries();
         string? error = null;
         var sharesChanged = false;
+        var renamed = false;
         var found = _store.UpdatePeer(peerId, p =>
         {
             if (request.Enabled.HasValue)
             {
                 p.Enabled = request.Enabled.Value;
+            }
+
+            if (request.Alias is not null)
+            {
+                var alias = string.IsNullOrWhiteSpace(request.Alias) ? null : request.Alias.Trim();
+                alias = alias is { Length: > MaxAliasLength } ? alias[..MaxAliasLength].TrimEnd() : alias;
+                if (!string.Equals(alias, p.Alias, StringComparison.Ordinal))
+                {
+                    p.Alias = alias;
+                    renamed = true;
+                }
             }
 
             if (request.SharedLibraryIds is not null)
@@ -347,6 +363,12 @@ public class AdminController : ControllerBase
         if (!found)
         {
             return NotFound(new { error = Text.Get("UnknownFriend") });
+        }
+
+        if (renamed)
+        {
+            // Deliberate: the next sync renames the friend's files after the new name (version picker included).
+            await _sync.RenameFilesAtNextSyncAsync(peerId).ConfigureAwait(false);
         }
 
         _sync.QueueSync(peerId, TimeSpan.FromSeconds(1));
@@ -468,6 +490,9 @@ public class AdminController : ControllerBase
 
         /// <summary>Gets or sets import changes.</summary>
         public List<ImportChange>? Imports { get; set; }
+
+        /// <summary>Gets or sets the name shown for this friend here (empty: the one its server announces; null: unchanged).</summary>
+        public string? Alias { get; set; }
     }
 
     /// <summary>Change of an import.</summary>

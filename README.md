@@ -99,11 +99,14 @@ and unzip it into a new `Bloom` folder inside Jellyfin's plugin folder, then res
 
 ## Become friends
 
+Bloom's settings page (*Dashboard → Bloom*) has five tabs: **My friends**, **Add a friend**, **This server**,
+**Libraries** and **Radarr and Sonarr**.
+
 1. **This server.** Enter your server's **public URL** (for example `https://jellyfin.example.com`, see
    [Networking](#networking)) and the name your friends will see.
-2. **Invite a friend.** Tick what you share with them, create an invite and send them the code through a channel
+2. **Add a friend.** Tick what you share with them, create an invite and send them the code through a channel
    you trust (Signal, WhatsApp…). An invite works once and expires after 7 days.
-3. **Your friend joins.** On their server, they paste the code. Bloom shows your key's **fingerprint**: compare it
+3. **Your friend joins.** On their server, in *Add a friend*, they paste the code. Bloom shows your key's **fingerprint**: compare it
    with them by voice or phone. If both match, nobody is in between. They tick what they share with you in return,
    then accept. Both servers sync right away.
 4. **My friends.** For each friend you see what you share with them (change it at any time) and what they share
@@ -111,7 +114,8 @@ and unzip it into a new `Bloom` folder inside Jellyfin's plugin folder, then res
    yours), **Separate library** (a library named after theirs is created, like "Films (Alice)"), or **Don't
    import**.
 
-You can pause a friend (both ways) or remove them. Sync settings are under *Dashboard → Scheduled tasks → Bloom*.
+You can pause a friend (both ways) or remove them. **Libraries** sets how their items arrive in yours (what you
+already have, versions, badges, intros). Sync settings are under *Dashboard → Scheduled tasks → Bloom*.
 
 <p align="center">
   <img src="docs/images/friends.png" width="760" alt="The friend card on Bloom's settings page: what Bob shares with Alice, what Alice shares with Bob, and where it goes">

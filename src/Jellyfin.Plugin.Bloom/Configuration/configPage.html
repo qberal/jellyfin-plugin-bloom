@@ -34,6 +34,15 @@
                 #BloomPage .bloom-steps { margin: .3em 0 0; padding-left: 1.2em; }
                 #BloomPage .bloom-hidden { display: none; }
                 #BloomPage .emby-button.bloom-small { padding: .35em .9em; font-size: .9em; margin: 0; }
+                #BloomPage .bloom-tabs { display: flex; gap: .2em; overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid rgba(128,128,128,.25); margin: 0 0 1.4em; }
+                #BloomPage .bloom-tabs::-webkit-scrollbar { display: none; }
+                #BloomPage .bloom-tab { flex: 0 0 auto; display: inline-flex; align-items: center; background: none; border: 0; border-bottom: 2px solid transparent; color: inherit; font: inherit; padding: .75em 1em .65em; margin: 0 0 -1px; cursor: pointer; opacity: .65; white-space: nowrap; transition: opacity .15s, border-color .15s; }
+                #BloomPage .bloom-tab:hover { opacity: 1; }
+                #BloomPage .bloom-tab:focus-visible { outline: 2px solid #00a4dc; outline-offset: -2px; border-radius: 6px 6px 0 0; }
+                #BloomPage .bloom-tab-active { opacity: 1; border-bottom-color: #00a4dc; font-weight: 600; }
+                #BloomPage .bloom-tab-count { min-width: 1.5em; margin-left: .5em; padding: 0 .45em; border-radius: 999px; background: rgba(128,128,128,.25); font-size: .78em; line-height: 1.6; text-align: center; font-weight: 600; }
+                #BloomPage .bloom-tab-count:empty { display: none; }
+                #BloomPage .bloom-tab-count.bloom-tab-alert { background: rgba(239,68,68,.3); color: #fca5a5; }
             </style>
 
             <div class="verticalSection">
@@ -41,185 +50,208 @@
                 <p class="bloom-muted" data-i18n="intro"></p>
             </div>
 
-            <!-- This server -->
-            <div class="bloom-card">
-                <h3 data-i18n="thisServer"></h3>
-                <p><span data-i18n="yourFingerprint"></span> <span class="bloom-fp" id="bloomFingerprint">…</span></p>
-                <p class="bloom-muted" data-i18n="fingerprintHelp"></p>
-                <form id="bloomSettingsForm">
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="bloomPublicUrl" data-i18n="publicUrl"></label>
-                        <input id="bloomPublicUrl" type="url" is="emby-input" data-i18n-placeholder="publicUrlExample" />
-                        <div class="fieldDescription">
-                            <span data-i18n="publicUrlHelp"></span>
-                            <a href="#" id="bloomUseSuggested" class="bloom-hidden"><span data-i18n="use"></span> <span id="bloomSuggested"></span></a>
-                        </div>
-                    </div>
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="bloomServerName" data-i18n="serverName"></label>
-                        <input id="bloomServerName" type="text" is="emby-input" />
-                        <div class="fieldDescription" data-i18n="serverNameHelp"></div>
-                    </div>
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="bloomMediaRoot" data-i18n="mediaRoot"></label>
-                        <input id="bloomMediaRoot" type="text" is="emby-input" />
-                        <div class="fieldDescription"><span data-i18n="mediaRootHelp"></span> <span id="bloomDefaultRoot"></span></div>
-                        <div class="fieldDescription" data-i18n="mediaRootMove"></div>
-                    </div>
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
-                            <input id="bloomSkipOwned" type="checkbox" is="emby-checkbox" />
-                            <span data-i18n="skipOwned"></span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription" data-i18n="skipOwnedHelp"></div>
-                    </div>
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
-                            <input id="bloomVersions" type="checkbox" is="emby-checkbox" />
-                            <span data-i18n="versions"></span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription" data-i18n="versionsHelp"></div>
-                    </div>
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
-                            <input id="bloomNotify" type="checkbox" is="emby-checkbox" />
-                            <span data-i18n="notify"></span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription" data-i18n="notifyHelp"></div>
-                    </div>
-                    <div class="selectContainer">
-                        <label class="selectLabel" for="bloomBadgeStyle" data-i18n="badge"></label>
-                        <select is="emby-select" id="bloomBadgeStyle" class="emby-select-withcolor emby-select"></select>
-                        <div class="fieldDescription" data-i18n="badgeHelp"></div>
-                    </div>
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
-                            <input id="bloomFriendIntros" type="checkbox" is="emby-checkbox" />
-                            <span data-i18n="friendIntros"></span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription" data-i18n="friendIntrosHelp"></div>
-                    </div>
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
-                            <input id="bloomSleeps" type="checkbox" is="emby-checkbox" />
-                            <span data-i18n="sleeps"></span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription" data-i18n="sleepsHelp"></div>
-                    </div>
-                    <button is="emby-button" type="submit" class="raised button-submit emby-button"><span data-i18n="save"></span></button>
-                    <div class="bloom-msg" id="bloomSettingsMsg"></div>
-                </form>
-                <div style="margin-top:1.6em">
-                    <h3 data-i18n="introVideoTitle"></h3>
-                    <p class="fieldDescription" data-i18n="introVideoHelp"></p>
-                    <p class="bloom-muted" id="bloomIntroState"></p>
-                    <video id="bloomIntroPreview" class="bloom-hidden" controls playsinline preload="metadata" style="display:block;max-width:min(100%,560px);border-radius:8px;margin:.4em 0 .8em"></video>
-                    <input type="file" id="bloomIntroFile" class="bloom-hidden" accept="video/mp4,video/quicktime,video/webm,video/x-matroska,.mp4,.m4v,.mov,.webm,.mkv" />
-                    <div class="bloom-row">
-                        <button is="emby-button" type="button" class="raised emby-button bloom-small" id="bloomIntroPick"><span id="bloomIntroPickLabel"></span></button>
-                        <button is="emby-button" type="button" class="raised emby-button bloom-small bloom-hidden" id="bloomIntroRemove"><span data-i18n="introVideoRemove"></span></button>
-                    </div>
-                    <div class="bloom-msg" id="bloomIntroMsg"></div>
+            <!-- Tabs -->
+            <div class="bloom-tabs" role="tablist">
+                <button type="button" class="bloom-tab bloom-tab-active" role="tab" id="bloomTab-friends" data-tab="friends" aria-controls="bloomPanel-friends" aria-selected="true"><span data-i18n="friendsTitle"></span><span class="bloom-tab-count" id="bloomFriendsCount"></span></button>
+                <button type="button" class="bloom-tab" role="tab" id="bloomTab-add" data-tab="add" aria-controls="bloomPanel-add" aria-selected="false" tabindex="-1"><span data-i18n="tabAdd"></span></button>
+                <button type="button" class="bloom-tab" role="tab" id="bloomTab-server" data-tab="server" aria-controls="bloomPanel-server" aria-selected="false" tabindex="-1"><span data-i18n="thisServer"></span></button>
+                <button type="button" class="bloom-tab" role="tab" id="bloomTab-libraries" data-tab="libraries" aria-controls="bloomPanel-libraries" aria-selected="false" tabindex="-1"><span data-i18n="tabLibraries"></span></button>
+                <button type="button" class="bloom-tab" role="tab" id="bloomTab-arr" data-tab="arr" aria-controls="bloomPanel-arr" aria-selected="false" tabindex="-1"><span data-i18n="arrTitle"></span></button>
+            </div>
+
+            <!-- My friends -->
+            <div class="bloom-panel" role="tabpanel" id="bloomPanel-friends" data-panel="friends" aria-labelledby="bloomTab-friends">
+                <div class="bloom-card">
+                    <div id="bloomPeers"><p class="bloom-muted" data-i18n="loading"></p></div>
                 </div>
             </div>
+
+            <!-- Add a friend: invite one, or join one -->
+            <div class="bloom-panel bloom-hidden" role="tabpanel" id="bloomPanel-add" data-panel="add" aria-labelledby="bloomTab-add">
+                <div class="bloom-card">
+                    <h3 data-i18n="inviteTitle"></h3>
+                    <p class="bloom-muted" data-i18n="inviteHelp"></p>
+                    <div class="bloom-libs" id="bloomInviteLibs"></div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="bloomInviteLabel" data-i18n="inviteFor"></label>
+                        <input id="bloomInviteLabel" type="text" is="emby-input" />
+                    </div>
+                    <button is="emby-button" type="button" id="bloomCreateInvite" class="raised emby-button"><span data-i18n="createInvite"></span></button>
+                    <div class="bloom-msg" id="bloomInviteMsg"></div>
+                    <div id="bloomInviteResult" class="bloom-hidden">
+                        <p data-i18n="inviteCode"></p>
+                        <textarea class="bloom-code" id="bloomInviteCode" readonly></textarea>
+                        <div class="bloom-row" style="margin-top:.5em">
+                            <button is="emby-button" type="button" id="bloomCopyInvite" class="raised emby-button bloom-small"><span data-i18n="copy"></span></button>
+                            <span class="bloom-muted"><span data-i18n="theyWillSee"></span> <span class="bloom-fp" id="bloomInviteFp"></span></span>
+                        </div>
+                    </div>
+                    <p class="bloom-muted" id="bloomPendingInvites"></p>
+                </div>
+
+                <div class="bloom-card">
+                    <h3 data-i18n="joinTitle"></h3>
+                    <p class="bloom-muted" data-i18n="joinHelp"></p>
+                    <textarea class="bloom-code" id="bloomJoinCode" placeholder="bloom1:…"></textarea>
+                    <div style="margin-top:.6em">
+                        <button is="emby-button" type="button" id="bloomInspect" class="raised emby-button"><span data-i18n="inspect"></span></button>
+                    </div>
+                    <div class="bloom-msg" id="bloomJoinMsg"></div>
+                    <div id="bloomJoinPreview" class="bloom-hidden">
+                        <p><span data-i18n="inviteFrom"></span> <strong id="bloomJoinName"></strong> (<span id="bloomJoinUrl"></span>)</p>
+                        <p><span data-i18n="announcedFingerprint"></span> <span class="bloom-fp" id="bloomJoinFp"></span></p>
+                        <p class="bloom-muted" data-i18n="compareFingerprint"></p>
+                        <p data-i18n="shareBack"></p>
+                        <div class="bloom-libs" id="bloomJoinLibs"></div>
+                        <button is="emby-button" type="button" id="bloomAccept" class="raised button-submit emby-button"><span data-i18n="becomeFriends"></span></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- One form for both tabs of settings: either Save button saves them all -->
+            <form id="bloomSettingsForm">
+                <!-- This server: what friends see of it -->
+                <div class="bloom-panel bloom-hidden" role="tabpanel" id="bloomPanel-server" data-panel="server" aria-labelledby="bloomTab-server">
+                    <div class="bloom-card">
+                        <p><span data-i18n="yourFingerprint"></span> <span class="bloom-fp" id="bloomFingerprint">…</span></p>
+                        <p class="bloom-muted" data-i18n="fingerprintHelp"></p>
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="bloomPublicUrl" data-i18n="publicUrl"></label>
+                            <input id="bloomPublicUrl" type="url" is="emby-input" data-i18n-placeholder="publicUrlExample" />
+                            <div class="fieldDescription">
+                                <span data-i18n="publicUrlHelp"></span>
+                                <a href="#" id="bloomUseSuggested" class="bloom-hidden"><span data-i18n="use"></span> <span id="bloomSuggested"></span></a>
+                            </div>
+                        </div>
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="bloomServerName" data-i18n="serverName"></label>
+                            <input id="bloomServerName" type="text" is="emby-input" />
+                            <div class="fieldDescription" data-i18n="serverNameHelp"></div>
+                        </div>
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input id="bloomNotify" type="checkbox" is="emby-checkbox" />
+                                <span data-i18n="notify"></span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription" data-i18n="notifyHelp"></div>
+                        </div>
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input id="bloomSleeps" type="checkbox" is="emby-checkbox" />
+                                <span data-i18n="sleeps"></span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription" data-i18n="sleepsHelp"></div>
+                        </div>
+                        <button is="emby-button" type="submit" class="raised button-submit emby-button"><span data-i18n="save"></span></button>
+                        <div class="bloom-msg"></div>
+                    </div>
+                    <div class="bloom-card">
+                        <h3 data-i18n="introVideoTitle"></h3>
+                        <p class="fieldDescription" data-i18n="introVideoHelp"></p>
+                        <p class="bloom-muted" id="bloomIntroState"></p>
+                        <video id="bloomIntroPreview" class="bloom-hidden" controls playsinline preload="metadata" style="display:block;max-width:min(100%,560px);border-radius:8px;margin:.4em 0 .8em"></video>
+                        <input type="file" id="bloomIntroFile" class="bloom-hidden" accept="video/mp4,video/quicktime,video/webm,video/x-matroska,.mp4,.m4v,.mov,.webm,.mkv" />
+                        <div class="bloom-row">
+                            <button is="emby-button" type="button" class="raised emby-button bloom-small" id="bloomIntroPick"><span id="bloomIntroPickLabel"></span></button>
+                            <button is="emby-button" type="button" class="raised emby-button bloom-small bloom-hidden" id="bloomIntroRemove"><span data-i18n="introVideoRemove"></span></button>
+                        </div>
+                        <div class="bloom-msg" id="bloomIntroMsg"></div>
+                    </div>
+                </div>
+
+                <!-- Libraries: how friends' items land in ours -->
+                <div class="bloom-panel bloom-hidden" role="tabpanel" id="bloomPanel-libraries" data-panel="libraries" aria-labelledby="bloomTab-libraries">
+                    <div class="bloom-card">
+                        <p class="bloom-muted" data-i18n="librariesIntro"></p>
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="bloomMediaRoot" data-i18n="mediaRoot"></label>
+                            <input id="bloomMediaRoot" type="text" is="emby-input" />
+                            <div class="fieldDescription"><span data-i18n="mediaRootHelp"></span> <span id="bloomDefaultRoot"></span></div>
+                            <div class="fieldDescription" data-i18n="mediaRootMove"></div>
+                        </div>
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input id="bloomSkipOwned" type="checkbox" is="emby-checkbox" />
+                                <span data-i18n="skipOwned"></span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription" data-i18n="skipOwnedHelp"></div>
+                        </div>
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input id="bloomVersions" type="checkbox" is="emby-checkbox" />
+                                <span data-i18n="versions"></span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription" data-i18n="versionsHelp"></div>
+                        </div>
+                        <div class="selectContainer">
+                            <label class="selectLabel" for="bloomBadgeStyle" data-i18n="badge"></label>
+                            <select is="emby-select" id="bloomBadgeStyle" class="emby-select-withcolor emby-select"></select>
+                            <div class="fieldDescription" data-i18n="badgeHelp"></div>
+                        </div>
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input id="bloomFriendIntros" type="checkbox" is="emby-checkbox" />
+                                <span data-i18n="friendIntros"></span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription" data-i18n="friendIntrosHelp"></div>
+                        </div>
+                        <button is="emby-button" type="submit" class="raised button-submit emby-button"><span data-i18n="save"></span></button>
+                        <div class="bloom-msg"></div>
+                    </div>
+                </div>
+            </form>
 
             <!-- Radarr and Sonarr -->
-            <div class="bloom-card">
-                <h3 data-i18n="arrTitle"></h3>
-                <p class="bloom-muted" data-i18n="arrIntro"></p>
-                <form id="bloomArrForm" autocomplete="off">
-                    <div class="bloom-cols">
-                        <div>
-                            <div class="inputContainer">
-                                <label class="inputLabel inputLabelUnfocused" for="bloomRadarrUrl" data-i18n="radarrUrl"></label>
-                                <input id="bloomRadarrUrl" type="url" is="emby-input" placeholder="http://radarr:7878" />
+            <div class="bloom-panel bloom-hidden" role="tabpanel" id="bloomPanel-arr" data-panel="arr" aria-labelledby="bloomTab-arr">
+                <div class="bloom-card">
+                    <p class="bloom-muted" data-i18n="arrIntro"></p>
+                    <form id="bloomArrForm" autocomplete="off">
+                        <div class="bloom-cols">
+                            <div>
+                                <div class="inputContainer">
+                                    <label class="inputLabel inputLabelUnfocused" for="bloomRadarrUrl" data-i18n="radarrUrl"></label>
+                                    <input id="bloomRadarrUrl" type="url" is="emby-input" placeholder="http://radarr:7878" />
+                                </div>
+                                <div class="inputContainer">
+                                    <label class="inputLabel inputLabelUnfocused" for="bloomRadarrKey" data-i18n="apiKey"></label>
+                                    <input id="bloomRadarrKey" type="password" is="emby-input" autocomplete="new-password" />
+                                    <div class="fieldDescription" data-i18n="apiKeyHelp"></div>
+                                </div>
+                                <p class="bloom-muted" id="bloomRadarrState"></p>
                             </div>
-                            <div class="inputContainer">
-                                <label class="inputLabel inputLabelUnfocused" for="bloomRadarrKey" data-i18n="apiKey"></label>
-                                <input id="bloomRadarrKey" type="password" is="emby-input" autocomplete="new-password" />
-                                <div class="fieldDescription" data-i18n="apiKeyHelp"></div>
+                            <div>
+                                <div class="inputContainer">
+                                    <label class="inputLabel inputLabelUnfocused" for="bloomSonarrUrl" data-i18n="sonarrUrl"></label>
+                                    <input id="bloomSonarrUrl" type="url" is="emby-input" placeholder="http://sonarr:8989" />
+                                </div>
+                                <div class="inputContainer">
+                                    <label class="inputLabel inputLabelUnfocused" for="bloomSonarrKey" data-i18n="apiKey"></label>
+                                    <input id="bloomSonarrKey" type="password" is="emby-input" autocomplete="new-password" />
+                                    <div class="fieldDescription" data-i18n="apiKeyHelp"></div>
+                                </div>
+                                <p class="bloom-muted" id="bloomSonarrState"></p>
                             </div>
-                            <p class="bloom-muted" id="bloomRadarrState"></p>
                         </div>
-                        <div>
-                            <div class="inputContainer">
-                                <label class="inputLabel inputLabelUnfocused" for="bloomSonarrUrl" data-i18n="sonarrUrl"></label>
-                                <input id="bloomSonarrUrl" type="url" is="emby-input" placeholder="http://sonarr:8989" />
-                            </div>
-                            <div class="inputContainer">
-                                <label class="inputLabel inputLabelUnfocused" for="bloomSonarrKey" data-i18n="apiKey"></label>
-                                <input id="bloomSonarrKey" type="password" is="emby-input" autocomplete="new-password" />
-                                <div class="fieldDescription" data-i18n="apiKeyHelp"></div>
-                            </div>
-                            <p class="bloom-muted" id="bloomSonarrState"></p>
+                        <div class="selectContainer">
+                            <label class="selectLabel" for="bloomArrAvoid" data-i18n="arrAvoid"></label>
+                            <select is="emby-select" id="bloomArrAvoid" class="emby-select-withcolor emby-select">
+                                <option value="GoodEnough" data-i18n="arrAvoidGoodEnough"></option>
+                                <option value="Always" data-i18n="arrAvoidAlways"></option>
+                                <option value="Off" data-i18n="arrAvoidOff"></option>
+                            </select>
+                            <div class="fieldDescription" data-i18n="arrAvoidHelp"></div>
                         </div>
-                    </div>
-                    <div class="selectContainer">
-                        <label class="selectLabel" for="bloomArrAvoid" data-i18n="arrAvoid"></label>
-                        <select is="emby-select" id="bloomArrAvoid" class="emby-select-withcolor emby-select">
-                            <option value="GoodEnough" data-i18n="arrAvoidGoodEnough"></option>
-                            <option value="Always" data-i18n="arrAvoidAlways"></option>
-                            <option value="Off" data-i18n="arrAvoidOff"></option>
-                        </select>
-                        <div class="fieldDescription" data-i18n="arrAvoidHelp"></div>
-                    </div>
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
-                            <input id="bloomArrAdd" type="checkbox" is="emby-checkbox" />
-                            <span data-i18n="arrAdd"></span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription" data-i18n="arrAddHelp"></div>
-                    </div>
-                    <button is="emby-button" type="submit" class="raised button-submit emby-button"><span data-i18n="save"></span></button>
-                    <div class="bloom-msg" id="bloomArrMsg"></div>
-                </form>
-            </div>
-
-            <!-- Invite -->
-            <div class="bloom-card">
-                <h3 data-i18n="inviteTitle"></h3>
-                <p class="bloom-muted" data-i18n="inviteHelp"></p>
-                <div class="bloom-libs" id="bloomInviteLibs"></div>
-                <div class="inputContainer">
-                    <label class="inputLabel inputLabelUnfocused" for="bloomInviteLabel" data-i18n="inviteFor"></label>
-                    <input id="bloomInviteLabel" type="text" is="emby-input" />
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input id="bloomArrAdd" type="checkbox" is="emby-checkbox" />
+                                <span data-i18n="arrAdd"></span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription" data-i18n="arrAddHelp"></div>
+                        </div>
+                        <button is="emby-button" type="submit" class="raised button-submit emby-button"><span data-i18n="save"></span></button>
+                        <div class="bloom-msg" id="bloomArrMsg"></div>
+                    </form>
                 </div>
-                <button is="emby-button" type="button" id="bloomCreateInvite" class="raised emby-button"><span data-i18n="createInvite"></span></button>
-                <div class="bloom-msg" id="bloomInviteMsg"></div>
-                <div id="bloomInviteResult" class="bloom-hidden">
-                    <p data-i18n="inviteCode"></p>
-                    <textarea class="bloom-code" id="bloomInviteCode" readonly></textarea>
-                    <div class="bloom-row" style="margin-top:.5em">
-                        <button is="emby-button" type="button" id="bloomCopyInvite" class="raised emby-button bloom-small"><span data-i18n="copy"></span></button>
-                        <span class="bloom-muted"><span data-i18n="theyWillSee"></span> <span class="bloom-fp" id="bloomInviteFp"></span></span>
-                    </div>
-                </div>
-                <p class="bloom-muted" id="bloomPendingInvites"></p>
-            </div>
-
-            <!-- Join -->
-            <div class="bloom-card">
-                <h3 data-i18n="joinTitle"></h3>
-                <p class="bloom-muted" data-i18n="joinHelp"></p>
-                <textarea class="bloom-code" id="bloomJoinCode" placeholder="bloom1:…"></textarea>
-                <div style="margin-top:.6em">
-                    <button is="emby-button" type="button" id="bloomInspect" class="raised emby-button"><span data-i18n="inspect"></span></button>
-                </div>
-                <div class="bloom-msg" id="bloomJoinMsg"></div>
-                <div id="bloomJoinPreview" class="bloom-hidden">
-                    <p><span data-i18n="inviteFrom"></span> <strong id="bloomJoinName"></strong> (<span id="bloomJoinUrl"></span>)</p>
-                    <p><span data-i18n="announcedFingerprint"></span> <span class="bloom-fp" id="bloomJoinFp"></span></p>
-                    <p class="bloom-muted" data-i18n="compareFingerprint"></p>
-                    <p data-i18n="shareBack"></p>
-                    <div class="bloom-libs" id="bloomJoinLibs"></div>
-                    <button is="emby-button" type="button" id="bloomAccept" class="raised button-submit emby-button"><span data-i18n="becomeFriends"></span></button>
-                </div>
-            </div>
-
-            <!-- Friends -->
-            <div class="bloom-card">
-                <h3 data-i18n="friendsTitle"></h3>
-                <div id="bloomPeers"><p class="bloom-muted" data-i18n="loading"></p></div>
             </div>
         </div>
     </div>
@@ -382,7 +414,10 @@
                     arrEpisodesAvoided_other: '{0} episodes friends have aren\'t downloaded',
                     arrSeriesAdded_one: '{0} friend\'s show added',
                     arrSeriesAdded_other: '{0} friends\' shows added',
-                    arrReleasing: 'Disconnected: Bloom is undoing what it changed in {0}…'
+                    arrReleasing: 'Disconnected: Bloom is undoing what it changed in {0}…',
+                    tabAdd: 'Add a friend',
+                    tabLibraries: 'Libraries',
+                    librariesIntro: 'How your friends\' movies and shows arrive in your libraries.'
                 },
                 fr: {
                     title: 'Bloom · fédération entre amis',
@@ -531,7 +566,10 @@
                     arrEpisodesAvoided_other: '{0} épisodes que des amis ont ne sont pas téléchargés',
                     arrSeriesAdded_one: '{0} série d\'ami ajoutée',
                     arrSeriesAdded_other: '{0} séries d\'amis ajoutées',
-                    arrReleasing: 'Déconnecté : Bloom défait ce qu\'il a changé dans {0}…'
+                    arrReleasing: 'Déconnecté : Bloom défait ce qu\'il a changé dans {0}…',
+                    tabAdd: 'Ajouter un ami',
+                    tabLibraries: 'Bibliothèques',
+                    librariesIntro: 'Comment les films et séries de vos amis arrivent dans vos bibliothèques.'
                 }
             };
             var lang = 'en';
@@ -680,6 +718,44 @@
                 return { mp4: 'video/mp4', m4v: 'video/x-m4v', mov: 'video/quicktime', webm: 'video/webm', mkv: 'video/x-matroska' }[ext] || '';
             }
 
+            // Tabs: the one shown last time, else "My friends" (or "Add a friend" while there is none yet).
+            var currentTab = null;
+
+            function showTab(name, focus) {
+                if (!page.querySelector('.bloom-panel[data-panel="' + name + '"]')) name = 'friends';
+                currentTab = name;
+                Array.prototype.forEach.call(page.querySelectorAll('.bloom-tab'), function (tab) {
+                    var on = tab.getAttribute('data-tab') === name;
+                    tab.classList.toggle('bloom-tab-active', on);
+                    tab.setAttribute('aria-selected', on ? 'true' : 'false');
+                    tab.tabIndex = on ? 0 : -1;
+                    if (on && focus) tab.focus();
+                });
+                Array.prototype.forEach.call(page.querySelectorAll('.bloom-panel'), function (panel) {
+                    panel.classList.toggle('bloom-hidden', panel.getAttribute('data-panel') !== name);
+                });
+                try { localStorage.setItem('bloom-tab', name); } catch (e) { /* private mode: not remembered */ }
+            }
+
+            function firstTab() {
+                var saved = null;
+                try { saved = localStorage.getItem('bloom-tab'); } catch (e) { saved = null; }
+                if (saved && page.querySelector('.bloom-panel[data-panel="' + saved + '"]')) return saved;
+                return (state.Peers || []).length ? 'friends' : 'add';
+            }
+
+            Array.prototype.forEach.call(page.querySelectorAll('.bloom-tab'), function (tab) {
+                tab.addEventListener('click', function () { showTab(tab.getAttribute('data-tab')); });
+                tab.addEventListener('keydown', function (e) {
+                    var tabs = Array.prototype.slice.call(page.querySelectorAll('.bloom-tab'));
+                    var i = tabs.indexOf(tab);
+                    var next = e.key === 'ArrowRight' ? i + 1 : e.key === 'ArrowLeft' ? i - 1 : e.key === 'Home' ? 0 : e.key === 'End' ? tabs.length - 1 : null;
+                    if (next === null) return;
+                    e.preventDefault();
+                    showTab(tabs[(next + tabs.length) % tabs.length].getAttribute('data-tab'), true);
+                });
+            });
+
             function renderStatus() {
                 var s = state;
                 $('#bloomFingerprint').textContent = s.Identity.Fingerprint;
@@ -714,6 +790,7 @@
                     : '';
 
                 renderPeers();
+                if (currentTab === null) showTab(firstTab());
             }
 
             // The state of Radarr or Sonarr under its fields: version and what Bloom did, or the error.
@@ -809,6 +886,9 @@
             function renderPeers() {
                 var container = $('#bloomPeers');
                 var peers = state.Peers || [];
+                var count = $('#bloomFriendsCount');
+                count.textContent = peers.length ? String(peers.length) : '';
+                count.classList.toggle('bloom-tab-alert', peers.some(function (p) { return p.LastError || p.RevokedByPeer; }));
                 var editing = {};
                 Array.prototype.forEach.call(container.querySelectorAll('[data-peer][data-editing]'), function (card) {
                     editing[card.getAttribute('data-peer')] = card;
@@ -934,7 +1014,7 @@
 
             $('#bloomSettingsForm').addEventListener('submit', async function (e) {
                 e.preventDefault();
-                var msg = $('#bloomSettingsMsg');
+                var msg = page.querySelector('#bloomSettingsForm .bloom-panel:not(.bloom-hidden) .bloom-msg');
                 try {
                     await call('POST', 'Settings', {
                         PublicUrl: $('#bloomPublicUrl').value.trim() || null,
@@ -1032,6 +1112,7 @@
                     $('#bloomJoinCode').value = '';
                     $('#bloomJoinPreview').classList.add('bloom-hidden');
                     await load();
+                    showTab('friends');
                 } catch (err) {
                     message(msg, err.message, 'error');
                 } finally {

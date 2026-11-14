@@ -528,7 +528,7 @@ public sealed class ArrSync : IDisposable
 
     /// <summary>
     /// What friends share with us, read from the libraries: their movies, and their series with the episodes they have.
-    /// Several friends having the same title count once, with the best copy.
+    /// Copies of the same title (several friends, several libraries) count once, with the best copy.
     /// </summary>
     private (List<FriendMovie> Movies, List<FriendSeries> Series) ReadFriendsItems()
     {
@@ -541,51 +541,19 @@ public sealed class ArrSync : IDisposable
             DtoOptions = new DtoOptions(false) { Fields = [ItemFields.ProviderIds], EnableImages = false, EnableUserData = false }
         }).Where(i => _catalog.IsFederatedPath(i.Path)).DistinctBy(i => i.Id).ToList();
 
-        var movies = new Dictionary<string, FriendMovie>(StringComparer.OrdinalIgnoreCase);
-        foreach (var movie in items.OfType<Movie>())
-        {
-            var tmdb = IntId(movie, "Tmdb");
-            var imdb = StringId(movie, "Imdb");
-            var key = tmdb is int t ? "tmdb:" + t.ToString(CultureInfo.InvariantCulture) : imdb is null ? null : "imdb:" + imdb;
-            if (key is null)
-            {
-                continue;
-            }
+        var movies = items.OfType<Movie>()
+            .Select(m => new FriendMovie(IntId(m, "Tmdb"), StringId(m, "Imdb"), m.Name ?? string.Empty, m.ProductionYear, ArrPlanner.Resolution(m.Width, m.Height)))
+            .ToList();
 
-            var friend = new FriendMovie(tmdb, imdb, movie.Name ?? string.Empty, movie.ProductionYear, ArrPlanner.Resolution(movie.Width, movie.Height));
-            if (!movies.TryGetValue(key, out var known) || known.Resolution < friend.Resolution)
-            {
-                movies[key] = friend;
-            }
-        }
-
-        var series = new Dictionary<string, FriendSeries>(StringComparer.OrdinalIgnoreCase);
-        var bySeriesItem = new Dictionary<Guid, FriendSeries>();
+        var series = new Dictionary<Guid, FriendSeries>();
         foreach (var show in items.OfType<Series>())
         {
-            var tvdb = IntId(show, "Tvdb");
-            var tmdb = IntId(show, "Tmdb");
-            var imdb = StringId(show, "Imdb");
-            var key = tvdb is int v ? "tvdb:" + v.ToString(CultureInfo.InvariantCulture)
-                : tmdb is int m ? "tmdb:" + m.ToString(CultureInfo.InvariantCulture)
-                : imdb is null ? null : "imdb:" + imdb;
-            if (key is null)
-            {
-                continue;
-            }
-
-            if (!series.TryGetValue(key, out var friend))
-            {
-                friend = new FriendSeries { TvdbId = tvdb, TmdbId = tmdb, ImdbId = imdb, Title = show.Name ?? string.Empty };
-                series[key] = friend;
-            }
-
-            bySeriesItem[show.Id] = friend;
+            series[show.Id] = new FriendSeries { TvdbId = IntId(show, "Tvdb"), TmdbId = IntId(show, "Tmdb"), ImdbId = StringId(show, "Imdb"), Title = show.Name ?? string.Empty };
         }
 
         foreach (var episode in items.OfType<Episode>())
         {
-            if (episode.ParentIndexNumber is not int season || episode.IndexNumber is not int first || !bySeriesItem.TryGetValue(episode.SeriesId, out var friend))
+            if (episode.ParentIndexNumber is not int season || episode.IndexNumber is not int first || !series.TryGetValue(episode.SeriesId, out var friend))
             {
                 continue;
             }
@@ -600,7 +568,7 @@ public sealed class ArrSync : IDisposable
             }
         }
 
-        return (movies.Values.ToList(), series.Values.Where(s => s.Episodes.Count > 0).ToList());
+        return (ArrPlanner.MergeMovies(movies), ArrPlanner.MergeSeries(series.Values.Where(s => s.Episodes.Count > 0)));
     }
 
     private static string? StringId(BaseItem item, string provider)

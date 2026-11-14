@@ -144,7 +144,8 @@ adresse et leur clé d'API dans *Bloom → Radarr et Sonarr* (Radarr 4 et Sonarr
 - Vider l'adresse de Radarr ou de Sonarr le débranche, après avoir défait tout ce que Bloom y avait changé.
 
 La copie d'un ami compte par sa résolution (4K, 1080p, 720p, SD), comparée au seuil (*cutoff*) de votre profil, ou à
-la plus petite qualité qu'il accepte quand il ne met pas à niveau.
+la plus petite qualité qu'il accepte quand il ne met pas à niveau. Quand plusieurs amis ont le même film ou la même
+série, ça compte une fois : la meilleure copie, et tous les épisodes que l'un d'eux a.
 
 ## Réseau
 

@@ -143,6 +143,24 @@ public static class ArrPlanner
     };
 
     /// <summary>
+    /// Merges the copies of the same movie (several friends, several libraries): copies sharing an id, directly or
+    /// through another copy, are one movie, with every id they have and the best resolution.
+    /// </summary>
+    /// <param name="copies">Every copy.</param>
+    /// <returns>One entry per movie.</returns>
+    public static List<FriendMovie> MergeMovies(IEnumerable<FriendMovie> copies)
+        => Group(copies.ToList(), MovieKeys).Select(CombineMovies).ToList();
+
+    /// <summary>
+    /// Merges the copies of the same series: copies sharing an id, directly or through another copy, are one series,
+    /// with every id they have and every episode any of them has (each with its best resolution).
+    /// </summary>
+    /// <param name="copies">Every copy.</param>
+    /// <returns>One entry per series.</returns>
+    public static List<FriendSeries> MergeSeries(IEnumerable<FriendSeries> copies)
+        => Group(copies.ToList(), SeriesKeys).Select(CombineSeries).ToList();
+
+    /// <summary>
     /// Plans the changes in Radarr. Updates the book only for what needs no call (forgetting what the user took over).
     /// </summary>
     /// <param name="movies">Every movie in Radarr.</param>
@@ -165,6 +183,7 @@ public static class ArrPlanner
         TimeSpan grace)
     {
         var plan = new RadarrPlan();
+        friends = MergeMovies(friends);
         var byTmdb = new Dictionary<int, FriendMovie>();
         var byImdb = new Dictionary<string, FriendMovie>(StringComparer.OrdinalIgnoreCase);
         foreach (var friend in friends)
@@ -180,7 +199,13 @@ public static class ArrPlanner
             }
         }
 
-        FriendMovie? Match(ArrMovie m) => byTmdb.GetValueOrDefault(m.TmdbId) ?? (m.ImdbId is string imdb ? byImdb.GetValueOrDefault(imdb) : null);
+        // Copies with no id in common can still be the same Radarr movie (one known by TMDB, one by IMDb): the best wins.
+        FriendMovie? Match(ArrMovie m)
+        {
+            var byTmdbId = byTmdb.GetValueOrDefault(m.TmdbId);
+            var byImdbId = m.ImdbId is string imdb ? byImdb.GetValueOrDefault(imdb) : null;
+            return byTmdbId is null || (byImdbId is not null && byImdbId.Resolution > byTmdbId.Resolution) ? byImdbId : byTmdbId;
+        }
         int Threshold(ArrMovie m) => thresholds.GetValueOrDefault(m.QualityProfileId);
 
         foreach (var m in movies)
@@ -299,7 +324,7 @@ public static class ArrPlanner
     /// <returns>Sonarr series ids.</returns>
     public static HashSet<int> SeriesToInspect(IReadOnlyList<ArrSeries> series, IReadOnlyList<FriendSeries> friends, SonarrBook book)
     {
-        var match = SeriesMatcher(friends);
+        var match = SeriesMatcher(MergeSeries(friends));
         var ids = series.Where(s => match(s) is not null).Select(s => s.Id).ToHashSet();
         ids.UnionWith(book.Unmonitored.Values.Select(r => r.SeriesId));
         ids.UnionWith(book.LeftAloneEpisodes.Values);
@@ -332,6 +357,7 @@ public static class ArrPlanner
         TimeSpan grace)
     {
         var plan = new SonarrPlan();
+        friends = MergeSeries(friends);
         var match = SeriesMatcher(friends);
         var present = series.Select(s => s.Id).ToHashSet();
 
@@ -534,9 +560,131 @@ public static class ArrPlanner
             }
         }
 
-        return s => byTvdb.GetValueOrDefault(s.TvdbId)
-            ?? (s.TmdbId is int tmdb ? byTmdb.GetValueOrDefault(tmdb) : null)
-            ?? (s.ImdbId is string imdb ? byImdb.GetValueOrDefault(imdb) : null);
+        // Copies with no id in common can still be the same Sonarr series (one known by TVDB, one by TMDB): together.
+        return s =>
+        {
+            var found = new[]
+                {
+                    byTvdb.GetValueOrDefault(s.TvdbId),
+                    s.TmdbId is int tmdb ? byTmdb.GetValueOrDefault(tmdb) : null,
+                    s.ImdbId is string imdb ? byImdb.GetValueOrDefault(imdb) : null
+                }
+                .OfType<FriendSeries>()
+                .Distinct()
+                .ToList();
+            return found.Count switch
+            {
+                0 => null,
+                1 => found[0],
+                _ => CombineSeries(found)
+            };
+        };
+    }
+
+    private static IEnumerable<string> MovieKeys(FriendMovie movie)
+    {
+        if (movie.TmdbId is int tmdb)
+        {
+            yield return "tmdb:" + tmdb.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        if (!string.IsNullOrEmpty(movie.ImdbId))
+        {
+            yield return "imdb:" + movie.ImdbId.ToLowerInvariant();
+        }
+    }
+
+    private static IEnumerable<string> SeriesKeys(FriendSeries series)
+    {
+        if (series.TvdbId is int tvdb)
+        {
+            yield return "tvdb:" + tvdb.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        if (series.TmdbId is int tmdb)
+        {
+            yield return "tmdb:" + tmdb.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        if (!string.IsNullOrEmpty(series.ImdbId))
+        {
+            yield return "imdb:" + series.ImdbId.ToLowerInvariant();
+        }
+    }
+
+    /// <summary>
+    /// Groups items sharing a key, directly or through another item (union-find).
+    /// </summary>
+    private static IEnumerable<List<T>> Group<T>(List<T> items, Func<T, IEnumerable<string>> keys)
+    {
+        var parent = Enumerable.Range(0, items.Count).ToArray();
+        int Find(int i)
+        {
+            while (parent[i] != i)
+            {
+                parent[i] = parent[parent[i]];
+                i = parent[i];
+            }
+
+            return i;
+        }
+
+        var byKey = new Dictionary<string, int>(StringComparer.Ordinal);
+        for (var i = 0; i < items.Count; i++)
+        {
+            foreach (var key in keys(items[i]))
+            {
+                if (byKey.TryGetValue(key, out var other))
+                {
+                    parent[Find(i)] = Find(other);
+                }
+                else
+                {
+                    byKey[key] = i;
+                }
+            }
+        }
+
+        return Enumerable.Range(0, items.Count).GroupBy(Find).Select(g => g.Select(i => items[i]).ToList());
+    }
+
+    private static FriendMovie CombineMovies(List<FriendMovie> copies)
+    {
+        var best = copies.MaxBy(m => m.Resolution)!;
+        return best with
+        {
+            TmdbId = best.TmdbId ?? copies.Select(m => m.TmdbId).FirstOrDefault(t => t is not null),
+            ImdbId = !string.IsNullOrEmpty(best.ImdbId) ? best.ImdbId : copies.Select(m => m.ImdbId).FirstOrDefault(i => !string.IsNullOrEmpty(i)),
+            Year = best.Year ?? copies.Select(m => m.Year).FirstOrDefault(y => y is not null)
+        };
+    }
+
+    private static FriendSeries CombineSeries(List<FriendSeries> copies)
+    {
+        if (copies.Count == 1)
+        {
+            return copies[0];
+        }
+
+        var merged = new FriendSeries
+        {
+            TvdbId = copies.Select(s => s.TvdbId).FirstOrDefault(t => t is not null),
+            TmdbId = copies.Select(s => s.TmdbId).FirstOrDefault(t => t is not null),
+            ImdbId = copies.Select(s => s.ImdbId).FirstOrDefault(i => !string.IsNullOrEmpty(i)),
+            Title = copies.Select(s => s.Title).FirstOrDefault(t => !string.IsNullOrEmpty(t)) ?? string.Empty
+        };
+        foreach (var copy in copies)
+        {
+            foreach (var (episode, resolution) in copy.Episodes)
+            {
+                if (!merged.Episodes.TryGetValue(episode, out var known) || known < resolution)
+                {
+                    merged.Episodes[episode] = resolution;
+                }
+            }
+        }
+
+        return merged;
     }
 
     /// <summary>

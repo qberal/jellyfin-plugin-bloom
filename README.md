@@ -142,7 +142,8 @@ key in *Bloom → Radarr and Sonarr* (Radarr 4 and Sonarr 4 or later).
 - Emptying the address of Radarr or Sonarr disconnects it, after undoing everything Bloom changed there.
 
 A friend's copy counts by its resolution (4K, 1080p, 720p, SD), compared with your profile's cutoff, or with the
-lowest quality it accepts when it doesn't upgrade.
+lowest quality it accepts when it doesn't upgrade. When several friends have the same movie or show, it counts
+once: the best copy, and every episode any of them has.
 
 ## Networking
 

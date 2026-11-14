@@ -5,6 +5,9 @@
 - The settings page has tabs: *My friends*, *Add a friend*, *This server*, *Libraries* and *Radarr and Sonarr*.
   It opens on the tab you used last (on *Add a friend* while you have no friend yet), and the *My friends* tab
   shows how many friends you have, in red when one of them has a problem.
+- Radarr and Sonarr: when several friends (or several of a friend's libraries) have the same movie or show, it
+  counts once, with the best copy and every episode any of them has, even when their servers know it by
+  different ids (TMDB, IMDb, TVDB).
 
 ## 0.3.0
 

@@ -7,9 +7,11 @@ import json
 import os
 import re
 import shutil
+import subprocess
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 
 import e2e
@@ -195,6 +197,33 @@ def main():
     m = movies()
     check(m[10378]["monitored"] and bloom_tag not in m[10378]["tags"], "Big Buck Bunny resurveillé par Bob : Bloom n'y touche plus et retire son tag")
     check(status["Arr"]["Radarr"]["NotDownloaded"] == 0, "… et ne le compte plus")
+
+    print("== Alice a aussi Tears of Steel en 4K, dans une autre bibliothèque")
+    folder = f"{MEDIA}/movies4k/Tears of Steel (2012)"
+    os.makedirs(folder, exist_ok=True)
+    ADDED.append(f"{MEDIA}/movies4k")
+    subprocess.run(["docker", "exec", "bloom-alice", "/usr/lib/jellyfin-ffmpeg/ffmpeg", "-loglevel", "error", "-y",
+                    "-f", "lavfi", "-i", "testsrc2=size=3840x2160:rate=25:duration=2", "-c:v", "libx264", "-preset", "ultrafast",
+                    "-pix_fmt", "yuv420p", "/media/movies4k/Tears of Steel (2012)/Tears of Steel (2012).mkv"], check=True)
+    with open(f"{folder}/Tears of Steel (2012).nfo", "w") as f:
+        f.write('<?xml version="1.0" encoding="utf-8"?><movie><title>Tears of Steel</title><year>2012</year>'
+                '<uniqueid type="tmdb" default="true">133701</uniqueid></movie>')
+    q = urllib.parse.urlencode({"name": "Films 4K", "collectionType": "movies", "paths": "/media/movies4k", "refreshLibrary": "true"})
+    api("alice", "POST", "/Library/VirtualFolders?" + q, {"LibraryOptions": {"EnableRealtimeMonitor": False}})
+    wait_idle("alice")
+    _, st_alice = api("alice", "GET", "/Bloom/Admin/Status")
+    code, _ = api("alice", "POST", f"/Bloom/Admin/Peers/{st_alice['Peers'][0]['Id']}", {"SharedLibraryIds": [l["Id"] for l in st_alice["ShareableLibraries"]]})
+    check(code == 204 and len(st_alice["ShareableLibraries"]) == 3, "Alice partage aussi sa bibliothèque « Films 4K » avec Bob")
+    status = refresh_alice_then_sync_bob(alice_id)
+    m = movies()
+    check(not m[133701]["monitored"] and bloom_tag in m[133701]["tags"], "deux copies de Tears of Steel chez Alice (720p et 4K) : la 4K compte, Radarr arrête de le chercher")
+    check(status["Arr"]["Radarr"]["NotDownloaded"] == 1, "… et la page de Bob le compte une fois")
+    tears = [i for i in items("bob", "Movie") if i["Name"] == "Tears of Steel"]
+    sources = []
+    if len(tears) == 1:
+        _, info = api("bob", "POST", f"/Items/{tears[0]['Id']}/PlaybackInfo?userId={SERVERS['bob']['user']}", {})
+        sources = sorted(s["Name"] for s in info["MediaSources"])
+    check(len(tears) == 1 and sources == ["Alice 4K", "Alice 720p"], f"chez Bob, une seule fiche avec les deux versions ({sources})")
 
     print("== Alice retire Sintel et un épisode")
     shutil.rmtree(sintel)

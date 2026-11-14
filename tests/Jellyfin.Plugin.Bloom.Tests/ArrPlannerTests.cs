@@ -291,6 +291,77 @@ public sealed class ArrPlannerTests
     }
 
     [Fact]
+    public void CopiesOfTheSameMovieCountOnceWithTheBestOne()
+    {
+        var merged = ArrPlanner.MergeMovies([
+            new FriendMovie(100, "tt0100", "Dune", 2021, 720),        // Alice
+            new FriendMovie(null, "TT0100", "Dune", null, 2160),      // Carol: known by IMDb only, in 4K
+            new FriendMovie(200, null, "Sintel", 2010, 1080),
+            new FriendMovie(200, "tt0200", "Sintel", 2010, 480),
+            new FriendMovie(null, "tt0200", "Sintel", 2010, 720)      // linked through the copy above
+        ]);
+
+        Assert.Equal(2, merged.Count);
+        var dune = merged.Single(m => m.Title == "Dune");
+        Assert.Equal(100, dune.TmdbId);
+        Assert.Equal("tt0100", dune.ImdbId, ignoreCase: true);
+        Assert.Equal(2160, dune.Resolution);
+        Assert.Equal(2021, dune.Year);
+        var sintel = merged.Single(m => m.Title == "Sintel");
+        Assert.Equal(200, sintel.TmdbId);
+        Assert.Equal("tt0200", sintel.ImdbId);
+        Assert.Equal(1080, sintel.Resolution);
+    }
+
+    [Fact]
+    public void TheBestCopyDecidesEvenWithoutAnIdInCommon()
+    {
+        // Alice's copy is known by TMDB only, Carol's 4K one by IMDb only: Radarr knows both ids.
+        var friends = new[] { Friend(100, resolution: 720), Friend(null, resolution: 2160, imdb: "tt0100") };
+
+        var plan = Radarr([Movie(1, 100, profile: 2, imdb: "tt0100")], friends, Settings(), new RadarrBook());
+
+        Assert.Equal([1], plan.Unmonitor.Keys);
+    }
+
+    [Fact]
+    public void TwoCopiesOfAFriendsMovieAreAddedOnce()
+    {
+        var plan = Radarr([], [Friend(300, imdb: "tt0300"), Friend(300, resolution: 2160)], Settings(add: true), new RadarrBook());
+
+        var added = Assert.Single(plan.Add);
+        Assert.Equal(2160, added.Resolution);
+        Assert.Equal("tt0300", added.ImdbId);
+    }
+
+    [Fact]
+    public void EpisodesOfEveryCopyOfASeriesAddUp()
+    {
+        var alice = new FriendSeries { TvdbId = 81189, TmdbId = 1396, Title = "Breaking Bad" };
+        alice.Episodes[(1, 1)] = 720;
+        alice.Episodes[(1, 2)] = 720;
+        var carol = new FriendSeries { TmdbId = 1396, Title = "Breaking Bad" };
+        carol.Episodes[(1, 2)] = 2160;
+        carol.Episodes[(2, 1)] = 1080;
+
+        var merged = Assert.Single(ArrPlanner.MergeSeries([alice, carol]));
+        Assert.Equal(81189, merged.TvdbId);
+        Assert.Equal(new Dictionary<(int, int), int> { [(1, 1)] = 720, [(1, 2)] = 2160, [(2, 1)] = 1080 }, merged.Episodes);
+
+        // In Sonarr, every episode either of them has is left alone.
+        var series = new[] { new ArrSeries(1, 81189, 1396, null, true, 0, 1) };
+        var episodes = new Dictionary<int, IReadOnlyList<ArrEpisode>> { [1] = [Ep(10, 1, 1), Ep(11, 1, 2), Ep(12, 1, 3), Ep(20, 2, 1)] };
+        Assert.Equal([10, 11, 20], Sonarr(series, episodes, [alice, carol], Settings(), new SonarrBook()).Unmonitor.Keys.Order());
+
+        // A copy with no id in common with them, but that Sonarr knows by its IMDb id, counts too.
+        var dave = new FriendSeries { ImdbId = "tt0903747", Title = "Breaking Bad" };
+        dave.Episodes[(1, 3)] = 1080;
+        var known = new[] { new ArrSeries(1, 81189, 1396, "tt0903747", true, 0, 1) };
+        Assert.Equal([1], ArrPlanner.SeriesToInspect(known, [alice, carol, dave], new SonarrBook()));
+        Assert.Equal([10, 11, 12, 20], Sonarr(known, episodes, [alice, carol, dave], Settings(), new SonarrBook()).Unmonitor.Keys.Order());
+    }
+
+    [Fact]
     public void QualityProfilesGiveTheResolutionTheyAreHappyWith()
     {
         static ArrQualityItem Q(int id, int resolution, bool allowed = true) => new() { Quality = new ArrQuality { Id = id, Resolution = resolution }, Items = [], Allowed = allowed };

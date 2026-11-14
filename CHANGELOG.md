@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- The settings page has tabs: *My friends*, *Add a friend*, *This server*, *Libraries* and *Radarr and Sonarr*.
+  It opens on the tab you used last (on *Add a friend* while you have no friend yet), and the *My friends* tab
+  shows how many friends you have, in red when one of them has a problem.
+
 ## 0.3.0
 
 - Jellyfin knows the resolution and HDR of a friend's movie or episode as soon as it is imported, not only

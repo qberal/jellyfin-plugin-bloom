@@ -100,11 +100,14 @@ décompressez-le dans un nouveau dossier `Bloom` du dossier des plugins de Jelly
 
 ## Devenir amis
 
+La page de réglages de Bloom (*Tableau de bord → Bloom*) a cinq onglets : **Mes amis**, **Ajouter un ami**,
+**Ce serveur**, **Bibliothèques** et **Radarr et Sonarr**.
+
 1. **Ce serveur.** Indiquez l'**URL publique** de votre serveur (par exemple `https://jellyfin.exemple.fr`, voir
    [Réseau](#réseau)) et le nom que verront vos amis.
-2. **Inviter un ami.** Cochez ce que vous lui partagez, créez l'invitation et envoyez-lui le code par un canal de
+2. **Ajouter un ami.** Cochez ce que vous lui partagez, créez l'invitation et envoyez-lui le code par un canal de
    confiance (Signal, WhatsApp…). Une invitation ne sert qu'une fois et expire au bout de 7 jours.
-3. **Votre ami vous rejoint.** Sur son serveur, il colle le code. Bloom affiche l'**empreinte** de votre clé :
+3. **Votre ami vous rejoint.** Sur son serveur, dans *Ajouter un ami*, il colle le code. Bloom affiche l'**empreinte** de votre clé :
    comparez-la avec lui de vive voix ou par téléphone. Si elles sont identiques, personne ne s'est intercalé. Il coche
    ce qu'il vous partage en retour, puis accepte. Les deux serveurs se synchronisent aussitôt.
 4. **Mes amis.** Pour chaque ami, vous voyez ce que vous partagez avec lui (modifiable à tout moment) et ce qu'il
@@ -112,7 +115,8 @@ décompressez-le dans un nouveau dossier `Bloom` du dossier des plugins de Jelly
    défaut : mélangée aux vôtres), **Bibliothèque séparée** (une bibliothèque au nom de la sienne est créée, par
    exemple « Movies (Alice) ») ou **Ne pas importer**.
 
-Vous pouvez mettre un ami en pause (dans les deux sens) ou le retirer. La synchronisation se règle dans
+Vous pouvez mettre un ami en pause (dans les deux sens) ou le retirer. **Bibliothèques** règle comment ses éléments
+arrivent chez vous (ce que vous avez déjà, versions, badges, intros). La synchronisation se règle dans
 *Tableau de bord → Tâches planifiées → Bloom*.
 
 <p align="center">

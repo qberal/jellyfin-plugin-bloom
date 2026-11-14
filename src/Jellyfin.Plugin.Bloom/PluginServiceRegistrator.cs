@@ -1,3 +1,4 @@
+using System;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -39,6 +40,18 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
         serviceCollection.AddSingleton<LibraryIntegration>();
         serviceCollection.AddSingleton<SyncService>();
         serviceCollection.AddSingleton<PairingService>();
+        serviceCollection.AddSingleton<ArrSync>();
+        serviceCollection.AddHttpClient(ArrSync.HttpClientName, client =>
+            {
+                client.Timeout = TimeSpan.FromMinutes(5);
+                client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("Jellyfin-Bloom", typeof(Plugin).Assembly.GetName().Version?.ToString() ?? "0"));
+            })
+            .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+            {
+                // A redirect would carry the API key elsewhere: the admin is told the right address instead.
+                AllowAutoRedirect = false,
+                AutomaticDecompression = DecompressionMethods.All
+            });
         serviceCollection.AddSingleton<FriendVideoInfo>();
         serviceCollection.AddSingleton<VersionLinker>();
         serviceCollection.AddSingleton<PeerWaker>();

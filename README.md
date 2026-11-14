@@ -51,6 +51,8 @@ what you share. Then:
   4K"), and yours stays the default. In a show, only the episodes you're missing are added.
 - **It stays up to date.** When a friend adds something, their server tells yours, which updates within minutes.
   A full sync also runs every 6 hours.
+- **Radarr, Sonarr and Jellyseerr know what your friends have** (optional): they don't download it a second time.
+  See [Radarr and Sonarr](#radarr-and-sonarr).
 - **It's private and revocable.** Each server has its own key, invites are checked with a fingerprint, and every
   request between servers is signed. You choose what each friend sees. Removing a friend removes their items
   from your server and yours from theirs, and their playback links stop working.
@@ -114,6 +116,29 @@ You can pause a friend (both ways) or remove them. Sync settings are under *Dash
 <p align="center">
   <img src="docs/images/friends.png" width="760" alt="The friend card on Bloom's settings page: what Bob shares with Alice, what Alice shares with Bob, and where it goes">
 </p>
+
+## Radarr and Sonarr
+
+**Jellyseerr** (Seerr) needs nothing: it reads Jellyfin, so it already shows your friends' movies and episodes as
+available. **Radarr and Sonarr** only know what is on their disk. Bloom can tell them: enter their address and API
+key in *Bloom → Radarr and Sonarr* (Radarr 4 and Sonarr 4 or later).
+
+- **What a friend already has isn't downloaded a second time.** A movie Radarr is looking for, or an episode
+  Sonarr is looking for, is unmonitored and tagged `bloom` when a friend has it. By default, only when their copy
+  is good enough for your quality profile: if your profile wants 4K and your friend has 1080p, Radarr keeps
+  looking. You can also choose to never download what a friend has, or to download it anyway.
+- **Add my friends' movies and shows** (off by default): they go to Radarr and Sonarr unmonitored, tagged `bloom`,
+  in the root folder and quality profile you use most. Whoever adds a movie there then sees that it's already
+  there, and import lists don't add it again. Handy without Jellyseerr.
+- **Bloom undoes it** once no friend has the item any more for 12 hours: monitored again and searched for, or
+  removed if Bloom added it. The 12 hours avoid downloads when a friend's items disappear for a moment (folder
+  moved, friend paused).
+- **You keep the last word.** Monitor an item yourself and Bloom leaves it alone. Delete an item Bloom added, and
+  it isn't added back.
+- Emptying the address of Radarr or Sonarr disconnects it, after undoing everything Bloom changed there.
+
+A friend's copy counts by its resolution (4K, 1080p, 720p, SD), compared with your profile's cutoff, or with the
+lowest quality it accepts when it doesn't upgrade.
 
 ## Networking
 

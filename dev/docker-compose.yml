@@ -4,6 +4,7 @@
 # *.localtest.me pointe vers 127.0.0.1 sur votre machine, et vers l'hôte dans les conteneurs (extra_hosts),
 # donc ces URL marchent à la fois entre les serveurs et depuis votre navigateur.
 # Usage : ./dev/e2e.sh (construit le plugin, prépare les médias, lance et teste tout).
+# ARR=1 ./dev/e2e.sh ajoute un Radarr et un Sonarr pour Bob (ports 8103 et 8104) et teste ce que Bloom y fait.
 services:
   alice:
     image: jellyfin/jellyfin:12.4
@@ -23,7 +24,29 @@ services:
     hostname: bob
     ports: ["8102:8096"]
     extra_hosts: *hosts
+    environment:
+      # Test Radarr/Sonarr (ARR=1) : Bob défait ses changements dès qu'Alice n'a plus un élément.
+      - BLOOM_ARR_GRACE_MINUTES=0
     volumes:
       - ./data/bob/config:/config
       - ./data/bob/cache:/cache
       - ./data/bob/media:/media
+  # Radarr et Sonarr de Bob, seulement avec ARR=1 (./dev/e2e.sh) : ils ont besoin d'Internet pour les fiches.
+  radarr:
+    image: lscr.io/linuxserver/radarr:6.4.4.10685-ls326
+    container_name: bloom-radarr
+    profiles: ["arr"]
+    ports: ["8103:7878"]
+    environment: [PUID=1000, PGID=1000, TZ=Etc/UTC]
+    volumes:
+      - ./data/radarr/config:/config
+      - ./data/radarr/movies:/movies
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:4.0.20.3014-ls5
+    container_name: bloom-sonarr
+    profiles: ["arr"]
+    ports: ["8104:8989"]
+    environment: [PUID=1000, PGID=1000, TZ=Etc/UTC]
+    volumes:
+      - ./data/sonarr/config:/config
+      - ./data/sonarr/tv:/tv

@@ -38,6 +38,7 @@ public class AdminController : ControllerBase
     private readonly LibraryIntegration _libraries;
     private readonly PeerClient _client;
     private readonly FederationPaths _paths;
+    private readonly ArrSync _arr;
     private readonly IServerApplicationHost _appHost;
     private readonly ILogger<AdminController> _logger;
 
@@ -53,6 +54,7 @@ public class AdminController : ControllerBase
     /// <param name="client">Peer client.</param>
     /// <param name="paths">Paths.</param>
     /// <param name="versions">Version linker.</param>
+    /// <param name="arr">Radarr and Sonarr.</param>
     /// <param name="appHost">Application host.</param>
     /// <param name="logger">Logger.</param>
     public AdminController(
@@ -65,9 +67,11 @@ public class AdminController : ControllerBase
         PeerClient client,
         VersionLinker versions,
         FederationPaths paths,
+        ArrSync arr,
         IServerApplicationHost appHost,
         ILogger<AdminController> logger)
     {
+        _arr = arr;
         _versions = versions;
         _paths = paths;
         _store = store;
@@ -110,6 +114,7 @@ public class AdminController : ControllerBase
                 Version = typeof(Plugin).Assembly.GetName().Version?.ToString()
             },
             state.Settings,
+            Arr = ArrStatus(state.Arr),
             Intro = OwnIntro() is { } intro ? new { Size = new FileInfo(intro).Length, state.Settings.IntroTag } : null,
             MediaRoot = _store.GetMediaRoot(),
             ShareableLibraries = _catalog.GetLocalShareableLibraries(),
@@ -222,6 +227,46 @@ public class AdminController : ControllerBase
             _store.Update(s => s.Settings.MediaRoot = mediaRoot);
         }
 
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Saves how Bloom works with Radarr and Sonarr, then checks them in the background (the page polls the status).
+    /// </summary>
+    /// <param name="request">Settings. An empty API key keeps the saved one; an empty address disconnects.</param>
+    /// <returns>Nothing.</returns>
+    [HttpPost("Arr")]
+    public ActionResult SaveArr([FromBody] ArrRequest request)
+    {
+        var current = _store.Snapshot().Arr;
+        var book = _store.LoadArrBook();
+
+        // Disconnecting one where Bloom changed things keeps it until they are undone (see ArrSync).
+        static ArrConnection Released(ArrConnection saved, bool changed)
+            => saved.IsSet && changed ? new ArrConnection { Url = saved.Url, ApiKey = saved.ApiKey, Release = true } : new ArrConnection();
+
+        var radarr = Connection("Radarr", request.RadarrUrl, request.RadarrApiKey, current.Radarr, out var error)
+            ?? (error is null ? Released(current.Radarr, book.Radarr.Unmonitored.Count + book.Radarr.Added.Count > 0) : null);
+        if (radarr is null)
+        {
+            return BadRequest(new { error });
+        }
+
+        var sonarr = Connection("Sonarr", request.SonarrUrl, request.SonarrApiKey, current.Sonarr, out error)
+            ?? (error is null ? Released(current.Sonarr, book.Sonarr.Unmonitored.Count + book.Sonarr.Added.Count + book.Sonarr.Tagged.Count > 0) : null);
+        if (sonarr is null)
+        {
+            return BadRequest(new { error });
+        }
+
+        _store.Update(s => s.Arr = new ArrSettings
+        {
+            Radarr = radarr,
+            Sonarr = sonarr,
+            Avoid = Enum.IsDefined(request.Avoid) ? request.Avoid : ArrAvoidMode.GoodEnough,
+            AddFriendsItems = request.AddFriendsItems
+        });
+        _arr.Queue();
         return NoContent();
     }
 
@@ -544,6 +589,71 @@ public class AdminController : ControllerBase
         return path is null ? NotFound() : PhysicalFile(path, FriendIntros.MediaType(path), enableRangeProcessing: true);
     }
 
+    /// <summary>
+    /// Builds a connection from the page's fields: null with no error means "not used".
+    /// </summary>
+    private static ArrConnection? Connection(string app, string? url, string? apiKey, ArrConnection saved, out string? error)
+    {
+        error = null;
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            return null;
+        }
+
+        var normalized = ArrClient.NormalizeUrl(url);
+        if (normalized is null)
+        {
+            error = Text.Get("ArrInvalidUrl", app);
+            return null;
+        }
+
+        // An empty key keeps the saved one, unless it belongs to a disconnected address.
+        var key = string.IsNullOrWhiteSpace(apiKey) ? (saved.Release ? null : saved.ApiKey) : apiKey.Trim();
+        if (string.IsNullOrWhiteSpace(key) || key.Length > 200 || !key.All(c => c is > ' ' and <= '~'))
+        {
+            error = Text.Get("ArrMissingKey", app);
+            return null;
+        }
+
+        return new ArrConnection { Url = normalized, ApiKey = key };
+    }
+
+    /// <summary>
+    /// What the page shows about Radarr and Sonarr (never the API keys).
+    /// </summary>
+    private object ArrStatus(ArrSettings settings)
+    {
+        var book = _store.LoadArrBook();
+        return new
+        {
+            settings.Avoid,
+            settings.AddFriendsItems,
+            Running = _arr.IsBusy,
+            Radarr = new
+            {
+                Url = settings.Radarr.Release ? null : settings.Radarr.Url,
+                HasApiKey = !settings.Radarr.Release && !string.IsNullOrWhiteSpace(settings.Radarr.ApiKey),
+                Releasing = settings.Radarr.Release,
+                book.Radarr.Status.LastRun,
+                book.Radarr.Status.Version,
+                book.Radarr.Status.Error,
+                NotDownloaded = book.Radarr.Unmonitored.Count,
+                Added = book.Radarr.Added.Count
+            },
+            Sonarr = new
+            {
+                Url = settings.Sonarr.Release ? null : settings.Sonarr.Url,
+                HasApiKey = !settings.Sonarr.Release && !string.IsNullOrWhiteSpace(settings.Sonarr.ApiKey),
+                Releasing = settings.Sonarr.Release,
+                book.Sonarr.Status.LastRun,
+                book.Sonarr.Status.Version,
+                book.Sonarr.Status.Error,
+                NotDownloaded = book.Sonarr.Unmonitored.Count,
+                Added = book.Sonarr.Added.Count
+            }
+        };
+    }
+
     private string? OwnIntro()
     {
         var file = _store.Snapshot().Settings.IntroFile;
@@ -582,6 +692,28 @@ public class AdminController : ControllerBase
                 _logger.LogDebug("Bloom: notify {Peer} failed: {Message}", peer.Name, ex.Message);
             }
         });
+    }
+
+    /// <summary>Radarr and Sonarr settings.</summary>
+    public sealed class ArrRequest
+    {
+        /// <summary>Gets or sets Radarr's address (empty: not used).</summary>
+        public string? RadarrUrl { get; set; }
+
+        /// <summary>Gets or sets Radarr's API key (empty: keep the saved one).</summary>
+        public string? RadarrApiKey { get; set; }
+
+        /// <summary>Gets or sets Sonarr's address (empty: not used).</summary>
+        public string? SonarrUrl { get; set; }
+
+        /// <summary>Gets or sets Sonarr's API key (empty: keep the saved one).</summary>
+        public string? SonarrApiKey { get; set; }
+
+        /// <summary>Gets or sets what they do with what a friend already has.</summary>
+        public ArrAvoidMode Avoid { get; set; } = ArrAvoidMode.GoodEnough;
+
+        /// <summary>Gets or sets a value indicating whether friends' movies and series are added to them.</summary>
+        public bool AddFriendsItems { get; set; }
     }
 
     /// <summary>Invite creation request.</summary>

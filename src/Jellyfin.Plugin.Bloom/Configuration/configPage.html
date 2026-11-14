@@ -123,6 +123,58 @@
                 </div>
             </div>
 
+            <!-- Radarr and Sonarr -->
+            <div class="bloom-card">
+                <h3 data-i18n="arrTitle"></h3>
+                <p class="bloom-muted" data-i18n="arrIntro"></p>
+                <form id="bloomArrForm" autocomplete="off">
+                    <div class="bloom-cols">
+                        <div>
+                            <div class="inputContainer">
+                                <label class="inputLabel inputLabelUnfocused" for="bloomRadarrUrl" data-i18n="radarrUrl"></label>
+                                <input id="bloomRadarrUrl" type="url" is="emby-input" placeholder="http://radarr:7878" />
+                            </div>
+                            <div class="inputContainer">
+                                <label class="inputLabel inputLabelUnfocused" for="bloomRadarrKey" data-i18n="apiKey"></label>
+                                <input id="bloomRadarrKey" type="password" is="emby-input" autocomplete="new-password" />
+                                <div class="fieldDescription" data-i18n="apiKeyHelp"></div>
+                            </div>
+                            <p class="bloom-muted" id="bloomRadarrState"></p>
+                        </div>
+                        <div>
+                            <div class="inputContainer">
+                                <label class="inputLabel inputLabelUnfocused" for="bloomSonarrUrl" data-i18n="sonarrUrl"></label>
+                                <input id="bloomSonarrUrl" type="url" is="emby-input" placeholder="http://sonarr:8989" />
+                            </div>
+                            <div class="inputContainer">
+                                <label class="inputLabel inputLabelUnfocused" for="bloomSonarrKey" data-i18n="apiKey"></label>
+                                <input id="bloomSonarrKey" type="password" is="emby-input" autocomplete="new-password" />
+                                <div class="fieldDescription" data-i18n="apiKeyHelp"></div>
+                            </div>
+                            <p class="bloom-muted" id="bloomSonarrState"></p>
+                        </div>
+                    </div>
+                    <div class="selectContainer">
+                        <label class="selectLabel" for="bloomArrAvoid" data-i18n="arrAvoid"></label>
+                        <select is="emby-select" id="bloomArrAvoid" class="emby-select-withcolor emby-select">
+                            <option value="GoodEnough" data-i18n="arrAvoidGoodEnough"></option>
+                            <option value="Always" data-i18n="arrAvoidAlways"></option>
+                            <option value="Off" data-i18n="arrAvoidOff"></option>
+                        </select>
+                        <div class="fieldDescription" data-i18n="arrAvoidHelp"></div>
+                    </div>
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="bloomArrAdd" type="checkbox" is="emby-checkbox" />
+                            <span data-i18n="arrAdd"></span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription" data-i18n="arrAddHelp"></div>
+                    </div>
+                    <button is="emby-button" type="submit" class="raised button-submit emby-button"><span data-i18n="save"></span></button>
+                    <div class="bloom-msg" id="bloomArrMsg"></div>
+                </form>
+            </div>
+
             <!-- Invite -->
             <div class="bloom-card">
                 <h3 data-i18n="inviteTitle"></h3>
@@ -177,6 +229,7 @@
             var page = document.querySelector('#BloomPage');
             var state = null;
             var pollTimer = null;
+            var arrPollTimer = null;
 
             function $(sel) { return page.querySelector(sel); }
 
@@ -303,7 +356,33 @@
                     never: 'never',
                     httpError: 'HTTP error {0}',
                     movies: 'Movies',
-                    shows: 'Shows'
+                    shows: 'Shows',
+                    arrTitle: 'Radarr and Sonarr',
+                    arrIntro: 'Tell Radarr and Sonarr what your friends already have, so they don\'t download it a second time. Optional.',
+                    radarrUrl: 'Radarr address',
+                    sonarrUrl: 'Sonarr address',
+                    apiKey: 'API key',
+                    apiKeyHelp: 'In Radarr or Sonarr: Settings → General → Security.',
+                    apiKeySaved: 'Saved (leave empty to keep it)',
+                    arrAvoid: 'When a friend already has a movie or an episode',
+                    arrAvoidGoodEnough: 'Don\'t download it, unless my quality profile wants better',
+                    arrAvoidAlways: 'Don\'t download it',
+                    arrAvoidOff: 'Download it anyway',
+                    arrAvoidHelp: 'Bloom unmonitors it in Radarr or Sonarr and tags it bloom. If no friend has it any more for 12 hours, Bloom monitors it again and searches for it. Monitor it yourself to download it anyway: Bloom then leaves it alone.',
+                    arrAdd: 'Add my friends\' movies and shows to Radarr and Sonarr',
+                    arrAddHelp: 'Unmonitored, tagged bloom, in the root folder and quality profile you use most: whoever adds things there sees that you can already watch them, and import lists don\'t add them again. Bloom removes them when no friend has them any more, unless you monitored them meanwhile.',
+                    arrSavedChecking: 'Saved. Checking Radarr and Sonarr…',
+                    arrChecking: 'Checking…',
+                    arrState: '{0} {1} · checked {2}',
+                    arrMoviesAvoided_one: '{0} movie a friend has isn\'t downloaded',
+                    arrMoviesAvoided_other: '{0} movies friends have aren\'t downloaded',
+                    arrMoviesAdded_one: '{0} friend\'s movie added',
+                    arrMoviesAdded_other: '{0} friends\' movies added',
+                    arrEpisodesAvoided_one: '{0} episode a friend has isn\'t downloaded',
+                    arrEpisodesAvoided_other: '{0} episodes friends have aren\'t downloaded',
+                    arrSeriesAdded_one: '{0} friend\'s show added',
+                    arrSeriesAdded_other: '{0} friends\' shows added',
+                    arrReleasing: 'Disconnected: Bloom is undoing what it changed in {0}…'
                 },
                 fr: {
                     title: 'Bloom · fédération entre amis',
@@ -426,7 +505,33 @@
                     never: 'jamais',
                     httpError: 'Erreur HTTP {0}',
                     movies: 'Films',
-                    shows: 'Séries'
+                    shows: 'Séries',
+                    arrTitle: 'Radarr et Sonarr',
+                    arrIntro: 'Dites à Radarr et Sonarr ce que vos amis ont déjà, pour qu\'ils ne le téléchargent pas une deuxième fois. Facultatif.',
+                    radarrUrl: 'Adresse de Radarr',
+                    sonarrUrl: 'Adresse de Sonarr',
+                    apiKey: 'Clé d\'API',
+                    apiKeyHelp: 'Dans Radarr ou Sonarr : Settings → General → Security.',
+                    apiKeySaved: 'Enregistrée (laissez vide pour la garder)',
+                    arrAvoid: 'Quand un ami a déjà un film ou un épisode',
+                    arrAvoidGoodEnough: 'Ne pas le télécharger, sauf si mon profil de qualité veut mieux',
+                    arrAvoidAlways: 'Ne pas le télécharger',
+                    arrAvoidOff: 'Le télécharger quand même',
+                    arrAvoidHelp: 'Bloom le passe en non surveillé dans Radarr ou Sonarr, avec le tag bloom. Si plus aucun ami ne l\'a pendant 12 h, Bloom le surveille de nouveau et le recherche. Surveillez-le vous-même pour le télécharger quand même : Bloom n\'y touche plus.',
+                    arrAdd: 'Ajouter les films et séries de mes amis à Radarr et Sonarr',
+                    arrAddHelp: 'Non surveillés, avec le tag bloom, dans le dossier racine et le profil de qualité que vous utilisez le plus : qui y ajoute quelque chose voit que vous pouvez déjà le regarder, et les listes d\'import ne les rajoutent pas. Bloom les retire quand plus aucun ami ne les a, sauf si vous les avez surveillés entre-temps.',
+                    arrSavedChecking: 'Enregistré. Vérification de Radarr et Sonarr…',
+                    arrChecking: 'Vérification…',
+                    arrState: '{0} {1} · vérifié le {2}',
+                    arrMoviesAvoided_one: '{0} film qu\'un ami a n\'est pas téléchargé',
+                    arrMoviesAvoided_other: '{0} films que des amis ont ne sont pas téléchargés',
+                    arrMoviesAdded_one: '{0} film d\'ami ajouté',
+                    arrMoviesAdded_other: '{0} films d\'amis ajoutés',
+                    arrEpisodesAvoided_one: '{0} épisode qu\'un ami a n\'est pas téléchargé',
+                    arrEpisodesAvoided_other: '{0} épisodes que des amis ont ne sont pas téléchargés',
+                    arrSeriesAdded_one: '{0} série d\'ami ajoutée',
+                    arrSeriesAdded_other: '{0} séries d\'amis ajoutées',
+                    arrReleasing: 'Déconnecté : Bloom défait ce qu\'il a changé dans {0}…'
                 }
             };
             var lang = 'en';
@@ -591,6 +696,7 @@
                 renderIntro(s.Intro);
                 $('#bloomVersions').checked = !!s.Settings.GroupVersions;
                 $('#bloomSleeps').checked = !!s.Settings.SleepsWhenIdle;
+                renderArr();
                 if (s.Identity.SuggestedUrl && !s.Settings.PublicUrl) {
                     $('#bloomSuggested').textContent = s.Identity.SuggestedUrl;
                     $('#bloomUseSuggested').classList.remove('bloom-hidden');
@@ -608,6 +714,74 @@
                     : '';
 
                 renderPeers();
+            }
+
+            // The state of Radarr or Sonarr under its fields: version and what Bloom did, or the error.
+            function arrLine(el, app, info, running, avoidedKey, addedKey) {
+                if (info.Releasing) {
+                    el.textContent = info.Error || t('arrReleasing', app);
+                    el.className = info.Error ? 'bloom-msg error' : 'bloom-muted';
+                    return;
+                }
+
+                if (!info.Url) {
+                    el.textContent = '';
+                    el.className = 'bloom-muted';
+                    return;
+                }
+
+                if (running) {
+                    el.textContent = t('arrChecking');
+                    el.className = 'bloom-muted';
+                    return;
+                }
+
+                if (info.Error) {
+                    el.textContent = info.Error;
+                    el.className = 'bloom-msg error';
+                    return;
+                }
+
+                if (!info.LastRun) {
+                    el.textContent = '';
+                    el.className = 'bloom-muted';
+                    return;
+                }
+
+                var parts = [t('arrState', app, info.Version || '', fmtDate(info.LastRun)), tn(avoidedKey, info.NotDownloaded)];
+                if (info.Added) parts.push(tn(addedKey, info.Added));
+                el.textContent = parts.join(' · ');
+                el.className = 'bloom-muted';
+            }
+
+            function renderArrState() {
+                var arr = state.Arr;
+                arrLine($('#bloomRadarrState'), 'Radarr', arr.Radarr, arr.Running, 'arrMoviesAvoided', 'arrMoviesAdded');
+                arrLine($('#bloomSonarrState'), 'Sonarr', arr.Sonarr, arr.Running, 'arrEpisodesAvoided', 'arrSeriesAdded');
+                clearTimeout(arrPollTimer);
+                if (arr.Running) {
+                    arrPollTimer = setTimeout(async function () {
+                        try {
+                            state = await call('GET', 'Status');
+                            renderArrState();
+                        } catch (e) {
+                            // The next save or reload shows it.
+                        }
+                    }, 2000);
+                }
+            }
+
+            function renderArr() {
+                var arr = state.Arr;
+                $('#bloomRadarrUrl').value = arr.Radarr.Url || '';
+                $('#bloomSonarrUrl').value = arr.Sonarr.Url || '';
+                $('#bloomRadarrKey').value = '';
+                $('#bloomSonarrKey').value = '';
+                $('#bloomRadarrKey').setAttribute('placeholder', arr.Radarr.HasApiKey ? t('apiKeySaved') : '');
+                $('#bloomSonarrKey').setAttribute('placeholder', arr.Sonarr.HasApiKey ? t('apiKeySaved') : '');
+                $('#bloomArrAvoid').value = arr.Avoid || 'GoodEnough';
+                $('#bloomArrAdd').checked = !!arr.AddFriendsItems;
+                renderArrState();
             }
 
             function peerStatus(peer) {
@@ -776,6 +950,28 @@
                     });
                     message(msg, t('saved'), 'success');
                     await load();
+                } catch (err) {
+                    message(msg, err.message, 'error');
+                }
+                return false;
+            });
+
+            $('#bloomArrForm').addEventListener('submit', async function (e) {
+                e.preventDefault();
+                var msg = $('#bloomArrMsg');
+                try {
+                    await call('POST', 'Arr', {
+                        RadarrUrl: $('#bloomRadarrUrl').value.trim() || null,
+                        RadarrApiKey: $('#bloomRadarrKey').value.trim() || null,
+                        SonarrUrl: $('#bloomSonarrUrl').value.trim() || null,
+                        SonarrApiKey: $('#bloomSonarrKey').value.trim() || null,
+                        Avoid: $('#bloomArrAvoid').value,
+                        AddFriendsItems: $('#bloomArrAdd').checked
+                    });
+                    var connected = $('#bloomRadarrUrl').value.trim() || $('#bloomSonarrUrl').value.trim();
+                    message(msg, connected ? t('arrSavedChecking') : t('saved'), 'success');
+                    state = await call('GET', 'Status');
+                    renderArr();
                 } catch (err) {
                     message(msg, err.message, 'error');
                 }

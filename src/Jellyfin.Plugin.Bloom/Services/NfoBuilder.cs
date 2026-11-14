@@ -28,7 +28,7 @@ public static class NfoBuilder
     /// <param name="item">Movie.</param>
     /// <param name="peerName">Friend name (added as a tag).</param>
     /// <returns>XML.</returns>
-    public static string Movie(CatalogItem item, string peerName) => Build("movie", item, peerName, w => { });
+    public static string Movie(CatalogItem item, string peerName) => Build("movie", item, peerName, w => VideoDetails.From(item)?.Write(w));
 
     /// <summary>
     /// Builds a tvshow.nfo.
@@ -64,6 +64,7 @@ public static class NfoBuilder
         Element(w, "season", item.ParentIndexNumber?.ToString(CultureInfo.InvariantCulture));
         Element(w, "episode", item.IndexNumber?.ToString(CultureInfo.InvariantCulture));
         Element(w, "episodenumberend", item.IndexNumberEnd?.ToString(CultureInfo.InvariantCulture));
+        VideoDetails.From(item)?.Write(w);
     });
 
     private static string Build(string root, CatalogItem item, string? peerName, Action<XmlWriter> extra)

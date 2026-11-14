@@ -27,6 +27,7 @@ public sealed class VersionLinker : ILibraryPostScanTask
     private readonly ILibraryManager _libraryManager;
     private readonly CatalogService _catalog;
     private readonly FederationStore _store;
+    private readonly FriendVideoInfo _videoInfo;
     private readonly ILogger<VersionLinker> _logger;
 
     /// <summary>
@@ -35,28 +36,46 @@ public sealed class VersionLinker : ILibraryPostScanTask
     /// <param name="libraryManager">Library manager.</param>
     /// <param name="catalog">Catalog service.</param>
     /// <param name="store">Federation store.</param>
+    /// <param name="videoInfo">Gives Jellyfin the video details of friends' items.</param>
     /// <param name="logger">Logger.</param>
-    public VersionLinker(ILibraryManager libraryManager, CatalogService catalog, FederationStore store, ILogger<VersionLinker> logger)
+    public VersionLinker(ILibraryManager libraryManager, CatalogService catalog, FederationStore store, FriendVideoInfo videoInfo, ILogger<VersionLinker> logger)
     {
         _libraryManager = libraryManager;
         _catalog = catalog;
         _store = store;
+        _videoInfo = videoInfo;
         _logger = logger;
     }
 
     /// <inheritdoc />
-    public Task Run(IProgress<double> progress, CancellationToken cancellationToken) => LinkAsync(cancellationToken);
+    public Task Run(IProgress<double> progress, CancellationToken cancellationToken) => LinkAsync(true, cancellationToken);
 
     /// <summary>
     /// Brings the versions of every movie library in line with the plan.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A task.</returns>
-    public async Task LinkAsync(CancellationToken cancellationToken)
+    public Task LinkAsync(CancellationToken cancellationToken) => LinkAsync(false, cancellationToken);
+
+    private async Task LinkAsync(bool afterScan, CancellationToken cancellationToken)
     {
         await Gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            // First, under the same lock (both save the same items): new friends' items get the size of their video,
+            // which the versions below are also sorted by.
+            if (afterScan)
+            {
+                try
+                {
+                    await _videoInfo.FillAsync(cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    _logger.LogError(ex, "Bloom: could not give Jellyfin the video details of friends' items");
+                }
+            }
+
             var enabled = _store.Snapshot().Settings.GroupVersions;
             foreach (var info in _libraryManager.GetVirtualFolders())
             {

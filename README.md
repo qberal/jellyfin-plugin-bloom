@@ -170,6 +170,9 @@ typical 1080p file, 25–80 Mbit/s for 4K. If your device can't play the format,
   the name they had when their items were first imported: renaming the files would make Jellyfin see every item
   as new. A name you choose for them (*Name shown here*) does rename their files, once.
 - **Infuse** shows the badge in *Direct* mode only: in *Library* mode it uses its own posters.
+- **Jellyseerr** (Seerr) shows your friends' movies and episodes as available, so nobody requests them again.
+  Bloom tells Jellyfin the resolution, codec and HDR of their copies at sync, without waiting for a first
+  playback. If a friend goes to a separate library, enable it in Jellyseerr's Jellyfin settings.
 - Bloom writes friends' items to `<Jellyfin data>/bloom/media` (configurable). Don't edit them by hand. Changing
   that folder removes friends' items and imports them again in the new one: their watch history starts over.
 - Keys and secrets are in `<Jellyfin data>/bloom/`, readable by Jellyfin only. Keep that folder in your

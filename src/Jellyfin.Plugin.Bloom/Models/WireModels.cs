@@ -296,6 +296,9 @@ public sealed class CatalogItem
     /// <summary>Gets or sets the dynamic range (SDR, HDR10, DOVI...).</summary>
     public string? VideoRange { get; set; }
 
+    /// <summary>Gets or sets the video codec (hevc, h264, av1...).</summary>
+    public string? VideoCodec { get; set; }
+
     /// <summary>Gets or sets the external subtitles.</summary>
     public List<CatalogSubtitle> Subtitles { get; set; } = [];
 

@@ -385,7 +385,16 @@ public sealed class ArrSync : IDisposable
             ? await ExclusionsAsync(client, "/api/v3/importlistexclusion", e => e.TvdbId, cancellationToken).ConfigureAwait(false)
             : [];
 
-        var known = series.Select(s => new ArrSeries(s.Id, s.TvdbId, s.TmdbId is > 0 ? s.TmdbId : null, s.ImdbId, s.Monitored, s.Statistics?.EpisodeFileCount ?? 0, s.QualityProfileId)).ToList();
+        var known = series.Select(s => new ArrSeries(
+                s.Id,
+                s.TvdbId,
+                s.TmdbId is > 0 ? s.TmdbId : null,
+                s.ImdbId,
+                s.Monitored,
+                s.Statistics?.EpisodeFileCount ?? 0,
+                s.QualityProfileId,
+                !string.Equals(s.MonitorNewItems, "none", StringComparison.OrdinalIgnoreCase)))
+            .ToList();
         var episodes = new Dictionary<int, IReadOnlyList<ArrEpisode>>();
         foreach (var id in ArrPlanner.SeriesToInspect(known, friends, book))
         {
@@ -441,6 +450,11 @@ public sealed class ArrSync : IDisposable
             book.Tagged.Remove(id);
         }
 
+        if (plan.NoNewSeasons.Count > 0)
+        {
+            await client.SendAsync(HttpMethod.Put, "/api/v3/series/editor", new { seriesIds = plan.NoNewSeasons, monitorNewItems = "none" }, cancellationToken).ConfigureAwait(false);
+        }
+
         if (plan.Tag.Count > 0)
         {
             await client.SendAsync(HttpMethod.Put, "/api/v3/series/editor", new { seriesIds = plan.Tag, tags = new[] { tag }, applyTags = "add" }, cancellationToken).ConfigureAwait(false);
@@ -478,6 +492,9 @@ public sealed class ArrSync : IDisposable
                             qualityProfileId = profile,
                             rootFolderPath = root,
                             monitored = false,
+
+                            // Sonarr monitors the seasons that come out later by default: not for a friend's series.
+                            monitorNewItems = "none",
                             seasonFolder = true,
                             tags = new[] { tag },
                             addOptions = new { monitor = "none", searchForMissingEpisodes = false, searchForCutoffUnmetEpisodes = false }

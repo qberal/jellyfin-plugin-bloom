@@ -202,6 +202,9 @@ public sealed class SonarrSeries
 
     /// <summary>Gets or sets the statistics.</summary>
     public SonarrStatistics? Statistics { get; set; }
+
+    /// <summary>Gets or sets which seasons coming out later Sonarr monitors ("all" or "none").</summary>
+    public string? MonitorNewItems { get; set; }
 }
 
 /// <summary>An episode in Sonarr.</summary>

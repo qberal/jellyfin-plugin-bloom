@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.2
+
+- Sonarr: friends' shows that Bloom adds no longer monitor their future seasons (Sonarr's default). Nothing was
+  downloaded, since the show itself is unmonitored, but Sonarr showed new seasons as monitored. Shows added by
+  0.3.0 and 0.3.1 are corrected at the next pass.
+
 ## 0.3.1
 
 - The settings page has tabs: *My friends*, *Add a friend*, *This server*, *Libraries* and *Radarr and Sonarr*.

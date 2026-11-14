@@ -51,7 +51,8 @@ public sealed record ArrMovie(int Id, int TmdbId, string? ImdbId, bool Monitored
 /// <param name="Monitored">Whether Sonarr looks for its episodes.</param>
 /// <param name="EpisodeFileCount">Number of episode files Sonarr has.</param>
 /// <param name="QualityProfileId">Its quality profile.</param>
-public sealed record ArrSeries(int Id, int TvdbId, int? TmdbId, string? ImdbId, bool Monitored, int EpisodeFileCount, int QualityProfileId);
+/// <param name="MonitorsNewSeasons">Whether Sonarr monitors the seasons that come out later.</param>
+public sealed record ArrSeries(int Id, int TvdbId, int? TmdbId, string? ImdbId, bool Monitored, int EpisodeFileCount, int QualityProfileId, bool MonitorsNewSeasons = false);
 
 /// <summary>An episode in Sonarr.</summary>
 /// <param name="Id">Sonarr episode id.</param>
@@ -104,8 +105,11 @@ public sealed class SonarrPlan
     /// <summary>Gets the friends' series to add, unmonitored.</summary>
     public List<FriendSeries> Add { get; } = [];
 
+    /// <summary>Gets the series Bloom added whose future seasons Sonarr would monitor (its default): they must not be.</summary>
+    public List<int> NoNewSeasons { get; } = [];
+
     /// <summary>Gets a value indicating whether there is nothing to do.</summary>
-    public bool IsEmpty => Unmonitor.Count == 0 && Remonitor.Count == 0 && Tag.Count == 0 && Untag.Count == 0 && Delete.Count == 0 && Add.Count == 0;
+    public bool IsEmpty => Unmonitor.Count == 0 && Remonitor.Count == 0 && Tag.Count == 0 && Untag.Count == 0 && Delete.Count == 0 && Add.Count == 0 && NoNewSeasons.Count == 0;
 }
 
 /// <summary>
@@ -389,6 +393,12 @@ public static class ArrPlanner
                 else if (friend is not null && settings.AddFriendsItems)
                 {
                     book.SeriesGoneSince.Remove(s.Id);
+
+                    // Added before Bloom asked Sonarr not to (0.3.1 and older): its next seasons would show as monitored.
+                    if (s.MonitorsNewSeasons)
+                    {
+                        plan.NoNewSeasons.Add(s.Id);
+                    }
                 }
                 else if (!settings.AddFriendsItems || GraceOver(book.SeriesGoneSince, s.Id, now, grace))
                 {

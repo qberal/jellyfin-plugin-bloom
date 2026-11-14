@@ -399,6 +399,7 @@ public sealed class CatalogService
         ci.Width = videoStream?.Width;
         ci.Height = videoStream?.Height;
         ci.VideoRange = videoStream is null ? null : videoStream.VideoRangeType.ToString();
+        ci.VideoCodec = videoStream?.Codec;
         foreach (var stream in video.GetMediaStreams())
         {
             if (stream.Type != MediaStreamType.Subtitle || !stream.IsExternal || string.IsNullOrEmpty(stream.Path))

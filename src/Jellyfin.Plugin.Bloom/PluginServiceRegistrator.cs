@@ -39,6 +39,7 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
         serviceCollection.AddSingleton<LibraryIntegration>();
         serviceCollection.AddSingleton<SyncService>();
         serviceCollection.AddSingleton<PairingService>();
+        serviceCollection.AddSingleton<FriendVideoInfo>();
         serviceCollection.AddSingleton<VersionLinker>();
         serviceCollection.AddSingleton<PeerWaker>();
         serviceCollection.AddHostedService<FederationNotifier>();

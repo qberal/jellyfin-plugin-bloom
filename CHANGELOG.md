@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Jellyfin knows the resolution and HDR of a friend's movie or episode as soon as it is imported, not only
+  after someone played it (and its codec, once the friend runs this version too). Apps show them, the 4K/HD
+  filters work, and Jellyseerr (Seerr) sees friends' movies as available, so nobody requests them again.
+
 ## 0.2.3
 
 - Choose how friends' badges look (*Bloom → This server → Badge on friends' posters*): tinted glass in the

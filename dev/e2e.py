@@ -319,6 +319,17 @@ def main():
     _, folders = api("bob", "GET", "/Library/VirtualFolders")
     check(sorted(f["Name"] for f in folders) == ["Movies", "TV Shows"], "aucune bibliothèque en plus chez Bob")
 
+    print("== La vidéo des éléments d'Alice est connue avant toute lecture (Jellyseerr s'en sert)")
+    def video_of(item):
+        source = (item.get("MediaSources") or [{}])[0]
+        return next(((s.get("Width"), s.get("Height"), s.get("Codec")) for s in source.get("MediaStreams", []) if s.get("Type") == "Video"), None)
+    grand = next(i for i in items("bob", "Movie") if i["Name"] == "Le Grand Test")
+    alice_grand = next(i for i in items("alice", "Movie") if i["Name"] == "Le Grand Test")
+    print("     « Le Grand Test » chez Bob :", video_of(grand), "· chez Alice :", video_of(alice_grand))
+    check(video_of(grand) is not None and video_of(grand) == video_of(alice_grand), "le film d'Alice a sa piste vidéo chez Bob (taille et codec d'Alice), sans avoir été lu")
+    friend_eps = [i for i in items("bob", "Episode") if "/bloom/" in (i.get("Path") or "")]
+    check(len(friend_eps) == 2 and all(video_of(e) and video_of(e)[:2] == (640, 360) for e in friend_eps), "… comme ses épisodes")
+
     print("== Versions : le même film ou épisode en plusieurs qualités")
     def sources(key, name):
         movie = next(i for i in items(key, "Movie") if i["Name"] == name)

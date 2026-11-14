@@ -13,14 +13,17 @@ namespace Jellyfin.Plugin.Bloom.Tasks;
 public class FederationSyncTask : IScheduledTask
 {
     private readonly SyncService _sync;
+    private readonly ArrSync _arr;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="FederationSyncTask"/> class.
     /// </summary>
     /// <param name="sync">Sync service.</param>
-    public FederationSyncTask(SyncService sync)
+    /// <param name="arr">Tells Radarr and Sonarr what friends have.</param>
+    public FederationSyncTask(SyncService sync, ArrSync arr)
     {
         _sync = sync;
+        _arr = arr;
     }
 
     /// <inheritdoc />
@@ -36,8 +39,13 @@ public class FederationSyncTask : IScheduledTask
     public string Category => "Bloom";
 
     /// <inheritdoc />
-    public Task ExecuteAsync(IProgress<double> progress, CancellationToken cancellationToken)
-        => _sync.SyncAllAsync(progress, cancellationToken);
+    public async Task ExecuteAsync(IProgress<double> progress, CancellationToken cancellationToken)
+    {
+        await _sync.SyncAllAsync(progress, cancellationToken).ConfigureAwait(false);
+
+        // Radarr and Sonarr change on their own (a movie requested meanwhile): check them even if no friend changed.
+        _arr.Queue();
+    }
 
     /// <inheritdoc />
     public IEnumerable<TaskTriggerInfo> GetDefaultTriggers()

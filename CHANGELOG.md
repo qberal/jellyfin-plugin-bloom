@@ -5,6 +5,10 @@
 - Jellyfin knows the resolution and HDR of a friend's movie or episode as soon as it is imported, not only
   after someone played it (and its codec, once the friend runs this version too). Apps show them, the 4K/HD
   filters work, and Jellyseerr (Seerr) sees friends' movies as available, so nobody requests them again.
+- Radarr and Sonarr (optional, *Bloom → Radarr and Sonarr*): what a friend already has isn't downloaded a second
+  time, unless your quality profile wants better than their copy (or never, or always: you choose). Friends'
+  movies and shows can also be added, unmonitored, so Radarr and Sonarr show them as already there. Bloom undoes
+  all of it once your friends no longer have them, and never touches what you monitored yourself.
 
 ## 0.2.3
 

@@ -77,6 +77,20 @@ public static class Text
         ["InvalidCatalog"] = ("Invalid catalog received.", "Catalogue invalide reçu."),
         ["CatalogChanging"] = ("Your friend's catalog is changing right now (scan in progress?); it will be retried at the next sync.", "Le catalogue de votre ami change en ce moment (analyse en cours ?) ; nouvel essai à la prochaine synchronisation."),
 
+        // Radarr and Sonarr ({0}: Radarr or Sonarr).
+        ["ArrInvalidUrl"] = ("Invalid {0} address (for example http://192.168.1.10:7878).", "Adresse de {0} invalide (ex. : http://192.168.1.10:7878)."),
+        ["ArrMissingKey"] = ("Enter {0}'s API key (in {0}: Settings → General).", "Indiquez la clé d'API de {0} (dans {0} : Settings → General)."),
+        ["ArrUnreachable"] = ("{0} is unreachable: {1}", "{0} est injoignable : {1}"),
+        ["ArrTimeout"] = ("{0} did not answer in time.", "{0} n'a pas répondu à temps."),
+        ["ArrBadKey"] = ("{0} refused the API key.", "{0} refuse la clé d'API."),
+        ["ArrRedirect"] = ("{0} redirects to {1}: enter that address instead.", "{0} redirige vers {1} : indiquez plutôt cette adresse."),
+        ["ArrHttp"] = ("{0} answered HTTP {1}.", "{0} a répondu HTTP {1}."),
+        ["ArrHttpWithMessage"] = ("{0} answered HTTP {1}: {2}", "{0} a répondu HTTP {1} : {2}"),
+        ["ArrUnreadable"] = ("{0} sent an answer Bloom can't read.", "{0} a envoyé une réponse que Bloom ne sait pas lire."),
+        ["ArrWrongApp"] = ("This address is not {0} (it answered as {1}).", "Cette adresse n'est pas celle de {0} (elle a répondu en tant que {1})."),
+        ["ArrTooOld"] = ("Bloom needs {0} 4 or later.", "Bloom a besoin de {0} 4 ou plus récent."),
+        ["ArrNoRootFolder"] = ("{0} has no root folder or quality profile: add one in {0} so Bloom can add your friends' items.", "{0} n'a pas de dossier racine ou de profil de qualité : ajoutez-en un dans {0} pour que Bloom puisse y ajouter les éléments de vos amis."),
+
         // Jellyfin.
         ["PluginDescription"] = ("Share your libraries with your friends' Jellyfin servers: their movies and shows appear in your libraries and play from their server.", "Fédération entre serveurs Jellyfin amis : partagez vos bibliothèques, les films de vos amis apparaissent chez vous et sont lus depuis leur serveur."),
         ["TaskName"] = ("Sync friends' libraries", "Synchroniser les bibliothèques des amis"),

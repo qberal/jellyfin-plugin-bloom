@@ -52,6 +52,9 @@ public sealed class FederationPaths
     /// <summary>Gets the default root of imported media.</summary>
     public string DefaultMediaRoot => Path.Combine(DataDir, "media");
 
+    /// <summary>Gets the file recording what Bloom changed in Radarr and Sonarr.</summary>
+    public string ArrBookFile => Path.Combine(DataDir, "arr.json");
+
     /// <summary>
     /// Gets the root where friends' items are materialized.
     /// </summary>
@@ -273,7 +276,38 @@ public sealed class FederationStore
         }
     }
 
-    private static T Clone<T>(T value)
+    /// <summary>
+    /// Loads what Bloom changed in Radarr and Sonarr.
+    /// </summary>
+    /// <returns>The record (empty if none).</returns>
+    public ArrBook LoadArrBook()
+    {
+        try
+        {
+            if (File.Exists(_paths.ArrBookFile))
+            {
+                return JsonSerializer.Deserialize<ArrBook>(File.ReadAllBytes(_paths.ArrBookFile), Json.Options) ?? new ArrBook();
+            }
+        }
+        catch (Exception ex) when (ex is IOException or JsonException)
+        {
+            _logger.LogWarning(ex, "Bloom: {File} is unreadable, starting over", _paths.ArrBookFile);
+        }
+
+        return new ArrBook();
+    }
+
+    /// <summary>
+    /// Saves what Bloom changed in Radarr and Sonarr.
+    /// </summary>
+    /// <param name="book">The record.</param>
+    public void SaveArrBook(ArrBook book)
+    {
+        Directory.CreateDirectory(_paths.DataDir);
+        WriteAtomic(_paths.ArrBookFile, JsonSerializer.SerializeToUtf8Bytes(book, Json.Options));
+    }
+
+        private static T Clone<T>(T value)
         => JsonSerializer.Deserialize<T>(JsonSerializer.SerializeToUtf8Bytes(value, Json.Options), Json.Options)!;
 
     private static void WriteAtomic(string path, byte[] content)

@@ -52,6 +52,8 @@ choisit ce qu'on partage. Ensuite :
   manquent sont ajoutés.
 - **Tout reste à jour.** Quand un ami ajoute quelque chose, son serveur prévient le vôtre, qui se met à jour dans
   les minutes qui suivent. Une synchronisation complète passe aussi toutes les 6 heures.
+- **Radarr, Sonarr et Jellyseerr savent ce qu'ont vos amis** (facultatif) : ils ne le téléchargent pas une deuxième
+  fois. Voir [Radarr et Sonarr](#radarr-et-sonarr).
 - **C'est privé et révocable.** Chaque serveur a sa propre clé, les invitations se vérifient par une empreinte, et
   chaque requête entre serveurs est signée. Vous choisissez ce que voit chaque ami. Retirer un ami supprime ses
   éléments de chez vous et les vôtres de chez lui, et ses liens de lecture ne marchent plus.
@@ -116,6 +118,29 @@ Vous pouvez mettre un ami en pause (dans les deux sens) ou le retirer. La synchr
 <p align="center">
   <img src="docs/images/friends-fr.png" width="760" alt="La carte d'un ami dans la page Bloom : ce que Bob partage avec Alice, ce qu'Alice partage avec Bob, et où ça arrive">
 </p>
+
+## Radarr et Sonarr
+
+**Jellyseerr** (Seerr) n'a besoin de rien : il lit Jellyfin, donc il affiche déjà les films et épisodes de vos amis
+comme disponibles. **Radarr et Sonarr** ne connaissent que leur disque. Bloom peut les prévenir : indiquez leur
+adresse et leur clé d'API dans *Bloom → Radarr et Sonarr* (Radarr 4 et Sonarr 4 ou plus récents).
+
+- **Ce qu'un ami a déjà n'est pas téléchargé une deuxième fois.** Un film que Radarr cherche, ou un épisode que
+  Sonarr cherche, passe en non surveillé avec le tag `bloom` quand un ami l'a. Par défaut, seulement si sa copie
+  suffit à votre profil de qualité : si votre profil veut de la 4K et que votre ami a du 1080p, Radarr continue de
+  chercher. Vous pouvez aussi choisir de ne jamais télécharger ce qu'un ami a, ou de le télécharger quand même.
+- **Ajouter les films et séries de mes amis** (désactivé par défaut) : ils arrivent dans Radarr et Sonarr non
+  surveillés, avec le tag `bloom`, dans le dossier racine et le profil de qualité que vous utilisez le plus. Qui y
+  ajoute un film voit alors qu'il y est déjà, et les listes d'import ne le rajoutent pas. Pratique sans Jellyseerr.
+- **Bloom défait tout ça** quand plus aucun ami n'a l'élément depuis 12 heures : de nouveau surveillé et recherché,
+  ou retiré si c'est Bloom qui l'avait ajouté. Les 12 heures évitent des téléchargements quand les éléments d'un ami
+  disparaissent un moment (dossier déplacé, ami en pause).
+- **Vous gardez la main.** Surveillez un élément vous-même et Bloom n'y touche plus. Supprimez un élément que Bloom
+  a ajouté, il ne revient pas.
+- Vider l'adresse de Radarr ou de Sonarr le débranche, après avoir défait tout ce que Bloom y avait changé.
+
+La copie d'un ami compte par sa résolution (4K, 1080p, 720p, SD), comparée au seuil (*cutoff*) de votre profil, ou à
+la plus petite qualité qu'il accepte quand il ne met pas à niveau.
 
 ## Réseau
 

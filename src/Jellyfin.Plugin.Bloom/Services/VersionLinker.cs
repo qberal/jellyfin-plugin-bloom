@@ -28,6 +28,7 @@ public sealed class VersionLinker : ILibraryPostScanTask
     private readonly CatalogService _catalog;
     private readonly FederationStore _store;
     private readonly FriendVideoInfo _videoInfo;
+    private readonly ArrSync _arr;
     private readonly ILogger<VersionLinker> _logger;
 
     /// <summary>
@@ -37,9 +38,11 @@ public sealed class VersionLinker : ILibraryPostScanTask
     /// <param name="catalog">Catalog service.</param>
     /// <param name="store">Federation store.</param>
     /// <param name="videoInfo">Gives Jellyfin the video details of friends' items.</param>
+    /// <param name="arr">Tells Radarr and Sonarr what friends have.</param>
     /// <param name="logger">Logger.</param>
-    public VersionLinker(ILibraryManager libraryManager, CatalogService catalog, FederationStore store, FriendVideoInfo videoInfo, ILogger<VersionLinker> logger)
+    public VersionLinker(ILibraryManager libraryManager, CatalogService catalog, FederationStore store, FriendVideoInfo videoInfo, ArrSync arr, ILogger<VersionLinker> logger)
     {
+        _arr = arr;
         _libraryManager = libraryManager;
         _catalog = catalog;
         _store = store;
@@ -48,7 +51,13 @@ public sealed class VersionLinker : ILibraryPostScanTask
     }
 
     /// <inheritdoc />
-    public Task Run(IProgress<double> progress, CancellationToken cancellationToken) => LinkAsync(true, cancellationToken);
+    public async Task Run(IProgress<double> progress, CancellationToken cancellationToken)
+    {
+        await LinkAsync(true, cancellationToken).ConfigureAwait(false);
+
+        // Friends' items may have come or gone: tell Radarr and Sonarr (in the background, they may be slow).
+        _arr.Queue();
+    }
 
     /// <summary>
     /// Brings the versions of every movie library in line with the plan.

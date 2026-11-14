@@ -29,6 +29,9 @@ public sealed class FederationState
 
     /// <summary>Gets or sets the pending invites.</summary>
     public List<PendingInvite> Invites { get; set; } = [];
+
+    /// <summary>Gets or sets how Bloom works with Radarr and Sonarr.</summary>
+    public ArrSettings Arr { get; set; } = new();
 }
 
 /// <summary>User settings.</summary>

@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.1
 
 - The settings page has tabs: *My friends*, *Add a friend*, *This server*, *Libraries* and *Radarr and Sonarr*.
   It opens on the tab you used last (on *Add a friend* while you have no friend yet), and the *My friends* tab

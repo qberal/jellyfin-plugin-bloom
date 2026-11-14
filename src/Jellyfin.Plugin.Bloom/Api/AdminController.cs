@@ -39,6 +39,7 @@ public class AdminController : ControllerBase
     private readonly PeerClient _client;
     private readonly FederationPaths _paths;
     private readonly ArrSync _arr;
+    private readonly LibrarySummary _summary;
     private readonly IServerApplicationHost _appHost;
     private readonly ILogger<AdminController> _logger;
 
@@ -55,6 +56,7 @@ public class AdminController : ControllerBase
     /// <param name="paths">Paths.</param>
     /// <param name="versions">Version linker.</param>
     /// <param name="arr">Radarr and Sonarr.</param>
+    /// <param name="summary">What is ours and what comes from friends.</param>
     /// <param name="appHost">Application host.</param>
     /// <param name="logger">Logger.</param>
     public AdminController(
@@ -68,10 +70,12 @@ public class AdminController : ControllerBase
         VersionLinker versions,
         FederationPaths paths,
         ArrSync arr,
+        LibrarySummary summary,
         IServerApplicationHost appHost,
         ILogger<AdminController> logger)
     {
         _arr = arr;
+        _summary = summary;
         _versions = versions;
         _paths = paths;
         _store = store;
@@ -138,12 +142,22 @@ public class AdminController : ControllerBase
                 p.Alias,
                 ShownName = p.ShownName(),
                 HasIntro = p.IntroFile is not null,
+
+                // The tag their items carry, to filter them in Jellyfin (written in the server's language).
+                Tag = Text.GetInServerLanguage("FriendTag", p.ShownName()),
                 Busy = _sync.IsBusy(p.Id),
                 p.SharedLibraryIds,
                 p.Imports
             })
         };
     }
+
+    /// <summary>
+    /// What is in the libraries: ours, and what comes from each friend (Jellyfin's dashboard shows only the sum).
+    /// </summary>
+    /// <returns>The counts.</returns>
+    [HttpGet("Library")]
+    public ActionResult<LibrarySummaryCounts> Library() => _summary.Count();
 
     /// <summary>
     /// Saves the settings.

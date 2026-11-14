@@ -8,6 +8,9 @@
 - Radarr and Sonarr: when several friends (or several of a friend's libraries) have the same movie or show, it
   counts once, with the best copy and every episode any of them has, even when their servers know it by
   different ids (TMDB, IMDb, TVDB).
+- The *My friends* tab shows what is in your libraries: what is yours, what comes from each friend, and what only
+  they have. Jellyfin's dashboard adds it all up, and counts a friend's other version of one of your movies as one
+  more movie. Each friend's card also gives the tag to filter their items with in Jellyfin.
 
 ## 0.3.0
 

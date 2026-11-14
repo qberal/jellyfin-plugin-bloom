@@ -43,6 +43,12 @@
                 #BloomPage .bloom-tab-count { min-width: 1.5em; margin-left: .5em; padding: 0 .45em; border-radius: 999px; background: rgba(128,128,128,.25); font-size: .78em; line-height: 1.6; text-align: center; font-weight: 600; }
                 #BloomPage .bloom-tab-count:empty { display: none; }
                 #BloomPage .bloom-tab-count.bloom-tab-alert { background: rgba(239,68,68,.3); color: #fca5a5; }
+                #BloomPage .bloom-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: .9em; margin: .7em 0 .9em; }
+                #BloomPage .bloom-stat { background: rgba(128,128,128,.1); border-radius: 8px; padding: .8em 1em .9em; }
+                #BloomPage .bloom-stat-label { opacity: .75; }
+                #BloomPage .bloom-stat-total { font-size: 2.1em; font-weight: 600; line-height: 1.15; margin: .05em 0 .3em; font-variant-numeric: tabular-nums; }
+                #BloomPage .bloom-stat-line { font-size: .92em; line-height: 1.5; }
+                #BloomPage .bloom-stat-friends { opacity: .7; font-size: .85em; margin-top: .35em; }
             </style>
 
             <div class="verticalSection">
@@ -61,6 +67,11 @@
 
             <!-- My friends -->
             <div class="bloom-panel" role="tabpanel" id="bloomPanel-friends" data-panel="friends" aria-labelledby="bloomTab-friends">
+                <div class="bloom-card bloom-hidden" id="bloomSummary">
+                    <h3 data-i18n="summaryTitle"></h3>
+                    <div class="bloom-stats" id="bloomStats"></div>
+                    <p class="bloom-muted" data-i18n="summaryHelp"></p>
+                </div>
                 <div class="bloom-card">
                     <div id="bloomPeers"><p class="bloom-muted" data-i18n="loading"></p></div>
                 </div>
@@ -417,7 +428,15 @@
                     arrReleasing: 'Disconnected: Bloom is undoing what it changed in {0}…',
                     tabAdd: 'Add a friend',
                     tabLibraries: 'Libraries',
-                    librariesIntro: 'How your friends\' movies and shows arrive in your libraries.'
+                    librariesIntro: 'How your friends\' movies and shows arrive in your libraries.',
+                    episodes: 'Episodes',
+                    summaryTitle: 'In your libraries',
+                    summaryOwn: '{0} yours',
+                    summaryFriends: '{0} from your friends',
+                    summaryNew_one: '(including {0} you don\'t have)',
+                    summaryNew_other: '(including {0} you don\'t have)',
+                    summaryHelp: 'Jellyfin\'s dashboard adds it all up: yours and every copy from your friends, even another version of something you have. A show you both have counts twice.',
+                    tagHint: 'Their movies and shows carry the tag “{0}”: in a library, Filter → Tags shows only theirs.'
                 },
                 fr: {
                     title: 'Bloom · fédération entre amis',
@@ -569,7 +588,15 @@
                     arrReleasing: 'Déconnecté : Bloom défait ce qu\'il a changé dans {0}…',
                     tabAdd: 'Ajouter un ami',
                     tabLibraries: 'Bibliothèques',
-                    librariesIntro: 'Comment les films et séries de vos amis arrivent dans vos bibliothèques.'
+                    librariesIntro: 'Comment les films et séries de vos amis arrivent dans vos bibliothèques.',
+                    episodes: 'Épisodes',
+                    summaryTitle: 'Dans vos bibliothèques',
+                    summaryOwn: '{0} à vous',
+                    summaryFriends: '{0} de vos amis',
+                    summaryNew_one: '(dont {0} que vous n\'avez pas)',
+                    summaryNew_other: '(dont {0} que vous n\'avez pas)',
+                    summaryHelp: 'Le tableau de bord de Jellyfin additionne tout : vos éléments et chaque copie de vos amis, même une autre version de ce que vous avez. Une série que vous avez tous les deux compte deux fois.',
+                    tagHint: 'Ses films et séries portent le tag « {0} » : dans une bibliothèque, Filtres → Tags n\'affiche que les siens.'
                 }
             };
             var lang = 'en';
@@ -615,6 +642,57 @@
                 if (!value) return t('never');
                 var d = new Date(value);
                 return isNaN(d) ? '—' : d.toLocaleString(document.documentElement.getAttribute('lang') || undefined);
+            }
+
+            function fmtNumber(n) {
+                return Number(n || 0).toLocaleString(document.documentElement.getAttribute('lang') || undefined);
+            }
+
+            // tn() with the number written the local way (1,182 / 1 182).
+            function tnf(key, n) {
+                var one = lang === 'fr' ? n <= 1 : n === 1;
+                return t(key + (one ? '_one' : '_other'), fmtNumber(n));
+            }
+
+            // What is yours and what comes from friends: Jellyfin's dashboard only shows the sum.
+            var summary = null;
+            var wasBusy = false;
+
+            async function loadSummary() {
+                try {
+                    summary = await call('GET', 'Library');
+                } catch (e) {
+                    summary = null;
+                }
+                renderSummary();
+            }
+
+            function renderSummary() {
+                var card = $('#bloomSummary');
+                var peers = (state && state.Peers) || [];
+                if (!summary || !peers.length) {
+                    card.classList.add('bloom-hidden');
+                    return;
+                }
+
+                var names = {};
+                peers.forEach(function (p) { names[p.Id] = p.ShownName; });
+                function tile(kind, c) {
+                    var friends = Object.keys(c.ByFriend || {}).map(function (id) {
+                        return esc(names[id] || '?') + ' ' + esc(fmtNumber(c.ByFriend[id]));
+                    }).join(' · ');
+                    return '<div class="bloom-stat">' +
+                        '<div class="bloom-stat-label">' + esc(t(kind)) + '</div>' +
+                        '<div class="bloom-stat-total">' + esc(fmtNumber(c.Total)) + '</div>' +
+                        '<div class="bloom-stat-line">' + esc(t('summaryOwn', fmtNumber(c.Own))) + '</div>' +
+                        '<div class="bloom-stat-line">' + esc(t('summaryFriends', fmtNumber(c.Friends))) +
+                            (c.Friends ? ' <span class="bloom-muted">' + esc(tnf('summaryNew', c.New)) + '</span>' : '') + '</div>' +
+                        (friends ? '<div class="bloom-stat-friends">' + friends + '</div>' : '') +
+                        '</div>';
+                }
+
+                $('#bloomStats').innerHTML = tile('movies', summary.Movies) + tile('shows', summary.Series) + tile('episodes', summary.Episodes);
+                card.classList.remove('bloom-hidden');
             }
 
             function typeLabel(type) {
@@ -918,6 +996,7 @@
                         '<div class="bloom-row"><h4>' + esc(peer.ShownName) + '</h4>' + peerStatus(peer) + '</div>' +
                         '<div class="bloom-muted">' + esc(peer.Url) + ' · ' + esc(t('fingerprint')) + ' <span class="bloom-fp">' + esc(peer.Fingerprint) + '</span></div>' +
                         '<div class="bloom-muted">' + esc(t('friendsSince', fmtDate(peer.DateAdded), fmtDate(peer.LastSync))) + '</div>' +
+                        (peer.Tag ? '<div class="bloom-muted">' + esc(t('tagHint', peer.Tag)) + '</div>' : '') +
                         (peer.Sleeps ? '<div class="bloom-muted">' + esc(t('peerSleeps')) + '</div>' : '') +
                         (peer.HasIntro ? '<div class="bloom-muted">' + esc(t('peerHasIntro')) + '</div>' : '') +
                         (peer.LastError ? '<div class="bloom-msg error">' + esc(peer.LastError) + '</div>' : '') +
@@ -953,6 +1032,15 @@
                 var busy = peers.some(function (p) { return p.Busy; });
                 clearTimeout(pollTimer);
                 if (busy) pollTimer = setTimeout(function () { load(true); }, 3000);
+
+                // A sync just ended: the counts changed (Jellyfin scans right after, so ask again a bit later too).
+                if (wasBusy && !busy) {
+                    loadSummary();
+                    setTimeout(loadSummary, 20000);
+                }
+
+                wasBusy = busy;
+                renderSummary();
             }
 
             // poll: only refresh friends' status, leaving the forms (maybe being edited) alone.
@@ -960,7 +1048,12 @@
                 translatePage();
                 try {
                     state = await call('GET', 'Status');
-                    if (poll === true) renderPeers(); else renderStatus();
+                    if (poll === true) {
+                        renderPeers();
+                    } else {
+                        renderStatus();
+                        loadSummary();
+                    }
                 } catch (e) {
                     $('#bloomPeers').innerHTML = '<p class="bloom-msg error">' + esc(e.message) + '</p>';
                 }

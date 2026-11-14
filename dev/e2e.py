@@ -330,6 +330,22 @@ def main():
     friend_eps = [i for i in items("bob", "Episode") if "/bloom/" in (i.get("Path") or "")]
     check(len(friend_eps) == 2 and all(video_of(e) and video_of(e)[:2] == (640, 360) for e in friend_eps), "… comme ses épisodes")
 
+    print("== Ce qui est à Bob et ce qui vient d'Alice (le tableau de bord de Jellyfin additionne tout)")
+    _, counts = api("bob", "GET", f"/Items/Counts?userId={SERVERS['bob']['user']}")
+    _, summary = api("bob", "GET", "/Bloom/Admin/Library")
+    movies, series, eps = summary["Movies"], summary["Series"], summary["Episodes"]
+    print("     tableau de bord :", (counts["MovieCount"], counts["SeriesCount"], counts["EpisodeCount"]), "· Bloom :", {k: (v["Own"], v["Friends"], v["New"]) for k, v in summary.items()})
+    check((movies["Total"], series["Total"], eps["Total"]) == (counts["MovieCount"], counts["SeriesCount"], counts["EpisodeCount"]), "les totaux de Bloom sont ceux du tableau de bord de Jellyfin")
+    check((movies["Own"], movies["Friends"], movies["New"]) == (3, 2, 1), "films : 3 à Bob, 2 copies d'Alice dont 1 qu'il n'a pas (l'autre est une version)")
+    check((series["Own"], series["Friends"], series["New"]) == (1, 1, 0) and (eps["Own"], eps["Friends"], eps["New"]) == (2, 3, 2), "séries et épisodes : la série d'Alice complète celle de Bob")
+    check(movies["ByFriend"].get(alice_id) == 2, "… et chaque ami a son compte")
+    _, st_bob = api("bob", "GET", "/Bloom/Admin/Status")
+    tag = st_bob["Peers"][0].get("Tag")
+    q = urllib.parse.urlencode({"Recursive": "true", "IncludeItemTypes": "Movie,Series", "Tags": tag or "", "userId": SERVERS["bob"]["user"]})
+    _, tagged = api("bob", "GET", "/Items?" + q)
+    check(tag == "Fédération : Alice" and sorted(i["Name"] for i in tagged["Items"]) == ["Deux Versions", "Le Grand Test", "Série de Test"],
+          f"le tag donné par la page filtre les éléments d'Alice dans Jellyfin ({tag})")
+
     print("== Versions : le même film ou épisode en plusieurs qualités")
     def sources(key, name):
         movie = next(i for i in items(key, "Movie") if i["Name"] == name)

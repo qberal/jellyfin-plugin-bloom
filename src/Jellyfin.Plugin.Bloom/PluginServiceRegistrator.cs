@@ -40,6 +40,7 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
         serviceCollection.AddSingleton<LibraryIntegration>();
         serviceCollection.AddSingleton<SyncService>();
         serviceCollection.AddSingleton<PairingService>();
+        serviceCollection.AddSingleton<LibrarySummary>();
         serviceCollection.AddSingleton<ArrSync>();
         serviceCollection.AddHttpClient(ArrSync.HttpClientName, client =>
             {

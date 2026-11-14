@@ -136,6 +136,26 @@ public static class Text
         => key is not null && All.TryGetValue(key, out var text) && !text.En.Contains('{', StringComparison.Ordinal) && !text.Fr.Contains('{', StringComparison.Ordinal);
 
     /// <summary>
+    /// Gets a text in the server's language, whatever the request's: what Bloom writes on the server (tags) is in it.
+    /// </summary>
+    /// <param name="key">Key.</param>
+    /// <param name="args">Values for the placeholders.</param>
+    /// <returns>The text.</returns>
+    public static string GetInServerLanguage(string key, params object?[] args)
+    {
+        var previous = RequestLanguage.Value;
+        RequestLanguage.Value = null;
+        try
+        {
+            return Get(key, args);
+        }
+        finally
+        {
+            RequestLanguage.Value = previous;
+        }
+    }
+
+    /// <summary>
     /// Gets a text in the current language.
     /// </summary>
     /// <param name="key">Key.</param>

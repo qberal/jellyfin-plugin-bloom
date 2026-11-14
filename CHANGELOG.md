@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.0
 
 - Jellyfin knows the resolution and HDR of a friend's movie or episode as soon as it is imported, not only
   after someone played it (and its codec, once the friend runs this version too). Apps show them, the 4K/HD

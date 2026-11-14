@@ -208,6 +208,10 @@ c'est **votre** serveur qui transcode.
   élément comme nouveau à Jellyfin. Un nom que vous lui choisissez (*Nom affiché chez vous*) renomme bien ses
   fichiers, une fois.
 - **Infuse** n'affiche le badge qu'en mode *Direct* : en mode *Bibliothèque*, il utilise ses propres affiches.
+- **Les compteurs.** Le tableau de bord de Jellyfin additionne vos éléments et chaque copie de vos amis : un film que
+  vous avez tous les deux dans deux qualités compte deux fois, une série que vous avez tous les deux aussi. L'onglet
+  *Mes amis* de Bloom montre ce qui est à vous, ce qui vient de chaque ami, et ce que vous n'avez pas. Pour ne voir
+  que les éléments d'un ami dans une bibliothèque : *Filtres → Tags*, puis son tag (`Fédération : Alice`).
 - **Jellyseerr** (Seerr) affiche les films et épisodes de vos amis comme disponibles : personne ne les redemande.
   Bloom donne à Jellyfin la résolution, le codec et le HDR de leurs copies dès la synchro, sans attendre une
   première lecture. Si un ami arrive dans une bibliothèque séparée, cochez-la dans les réglages Jellyfin de

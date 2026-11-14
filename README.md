@@ -200,6 +200,10 @@ typical 1080p file, 25–80 Mbit/s for 4K. If your device can't play the format,
   the name they had when their items were first imported: renaming the files would make Jellyfin see every item
   as new. A name you choose for them (*Name shown here*) does rename their files, once.
 - **Infuse** shows the badge in *Direct* mode only: in *Library* mode it uses its own posters.
+- **Counts.** Jellyfin's dashboard adds up your items and every copy from your friends: a movie you both have in
+  two qualities counts twice, and so does a show you both have. Bloom's *My friends* tab shows what is yours, what
+  comes from each friend, and what only they have. To see one friend's items in a library: *Filter → Tags*, then
+  their tag ("Shared by Alice").
 - **Jellyseerr** (Seerr) shows your friends' movies and episodes as available, so nobody requests them again.
   Bloom tells Jellyfin the resolution, codec and HDR of their copies at sync, without waiting for a first
   playback. If a friend goes to a separate library, enable it in Jellyseerr's Jellyfin settings.

@@ -189,6 +189,10 @@ def main():
     check(not eps[(1, 1)]["monitored"] and not eps[(1, 2)]["monitored"] and eps[(1, 3)]["monitored"], "Breaking Bad : S01E01 et S01E02 (chez Alice) ne sont plus surveillés, S01E03 si")
     check(tag_id("sonarr") in show[81189]["tags"], "… et la série porte le tag bloom")
     check(73244 in show and not show[73244]["monitored"], "The Office, qu'Alice a, est ajoutée à Sonarr, non surveillée")
+    check(show.get(73244, {}).get("monitorNewItems") == "none", "… et sans surveiller ses saisons à venir")
+    arr("sonarr", "PUT", "/api/v3/series/editor", {"seriesIds": [show[73244]["id"]], "monitorNewItems": "all"})
+    save_arr()
+    check(series()[73244].get("monitorNewItems") == "none", "une série d'ami ajoutée par un ancien Bloom (saisons à venir surveillées) est corrigée")
     check((sonarr_status["NotDownloaded"], sonarr_status["Added"]) == (2, 1), "la page de Bob le résume (2 épisodes, 1 série)")
 
     print("== Bob reprend la main sur un film")

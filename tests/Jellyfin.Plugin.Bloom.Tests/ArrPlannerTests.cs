@@ -362,6 +362,24 @@ public sealed class ArrPlannerTests
     }
 
     [Fact]
+    public void SeriesBloomAddedDontMonitorTheirNextSeasons()
+    {
+        var friends = new[] { FriendShow(81189, (1, 1)) };
+        var book = new SonarrBook { Added = { [5] = 81189, [6] = 121361 }, Tagged = { 5, 6 } };
+        var series = new[]
+        {
+            new ArrSeries(5, 81189, null, null, false, 0, 1, MonitorsNewSeasons: true),   // added by an older Bloom
+            new ArrSeries(6, 121361, null, null, false, 0, 1, MonitorsNewSeasons: false),
+            new ArrSeries(7, 73244, null, null, true, 3, 1, MonitorsNewSeasons: true)     // the user's own: theirs to choose
+        };
+
+        var plan = Sonarr(series, [], [friends[0], FriendShow(121361, (1, 1))], Settings(add: true), book);
+
+        Assert.Equal([5], plan.NoNewSeasons);
+        Assert.False(plan.IsEmpty);
+    }
+
+    [Fact]
     public void QualityProfilesGiveTheResolutionTheyAreHappyWith()
     {
         static ArrQualityItem Q(int id, int resolution, bool allowed = true) => new() { Quality = new ArrQuality { Id = id, Resolution = resolution }, Items = [], Allowed = allowed };
